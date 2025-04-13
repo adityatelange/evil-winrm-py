@@ -9,6 +9,38 @@ import pypsrp.client
 from evil_winrm_py import __version__
 
 
+def interactive_shell(client: pypsrp.client.Client):
+    """Runs the interactive pseudo-shell."""
+
+    while True:
+        try:
+            cmd_input = input("PS> ")  # Prompt for command input
+            if not cmd_input:
+                continue
+
+            # Check for exit command
+            if cmd_input.lower() == "exit":
+                break
+
+            # Otherwise, execute the command
+            output, streams, had_errors = client.execute_ps(cmd_input)
+            if had_errors:
+                print("ERROR: {}".format(output))
+            else:
+                print(output)
+        except KeyboardInterrupt:
+            print("\nCaught Ctrl+C. Type 'exit' to quit.")
+            continue  # Allow user to continue or type exit
+        except EOFError:
+            print("\nEOF received, exiting.")
+            break  # Exit on Ctrl+D
+        except Exception as e:
+            print(f"Error in interactive shell loop: {e}")
+            # Decide whether to break or continue
+            break
+
+
+# --- Main Function ---
 def main():
     parser = argparse.ArgumentParser()
 
@@ -31,7 +63,7 @@ def main():
 
     # --- Initialize WinRM Session ---
     try:
-        # Create a connection
+        # Create a client instance
         client = pypsrp.client.Client(
             server=args.ip,
             port=args.port,
@@ -41,13 +73,9 @@ def main():
             ssl=False,
             cert_validation=False,
         )
-        # Execute a ps command
-        stdout, stderr, rc = client.execute_ps("$pwd.Path")
-        # Print the output
-        print(stdout)
-        print(stderr)
-        print(rc)
 
+        # run the interactive shell
+        interactive_shell(client)
     except Exception as e:
         print(e)
         sys.exit(1)
