@@ -21,9 +21,9 @@ logging.basicConfig(
 
 
 # --- Helper Functions ---
-def get_prompt(connection: pypsrp.client.Client):
+def get_prompt(client: pypsrp.client.Client):
     try:
-        output, streams, had_errors = connection.execute_ps(
+        output, streams, had_errors = client.execute_ps(
             "$pwd.Path"
         )  # Get current working directory
         if not had_errors:
@@ -33,7 +33,7 @@ def get_prompt(connection: pypsrp.client.Client):
     return "PS ?> "  # Fallback prompt
 
 
-def upload_file(connection: pypsrp.client.Client, local_path: str, remote_path: str):
+def upload_file(client: pypsrp.client.Client, local_path: str, remote_path: str):
     """Uploads a file to the remote host."""
     print(local_path)
     if not Path(local_path).is_file():
@@ -47,13 +47,13 @@ def upload_file(connection: pypsrp.client.Client, local_path: str, remote_path: 
 
     log.info("Uploading '{}' to '{}'".format(local_path, remote_path))
     try:
-        connection.copy(src=local_path, dest=remote_path)
+        client.copy(src=local_path, dest=remote_path)
         log.info("Upload completed.")
     except Exception as e:
         log.error("Upload failed: {}".format(e))
 
 
-def download_file(connection: pypsrp.client.Client, remote_path: str, local_path: str):
+def download_file(client: pypsrp.client.Client, remote_path: str, local_path: str):
     """Downloads a file from the remote host."""
     file_name = remote_path.split("\\")[-1]
 
@@ -64,7 +64,7 @@ def download_file(connection: pypsrp.client.Client, remote_path: str, local_path
 
     log.info("Downloading '{}' to '{}'".format(remote_path, local_path))
     try:
-        connection.fetch(src=remote_path, dest=local_path)
+        client.fetch(src=remote_path, dest=local_path)
         log.info("Download completed.")
     except Exception as e:
         log.error("Download failed: {e}".format(e))
