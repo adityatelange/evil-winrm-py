@@ -33,6 +33,43 @@ def get_prompt(connection: pypsrp.client.Client):
     return "PS ?> "  # Fallback prompt
 
 
+def upload_file(connection: pypsrp.client.Client, local_path: str, remote_path: str):
+    """Uploads a file to the remote host."""
+    print(local_path)
+    if not Path(local_path).is_file():
+        log.error("Local file not found: {}".format(local_path))
+        return
+
+    file_name = local_path.split("/")[-1]
+
+    if remote_path == ".":
+        remote_path = file_name
+
+    log.info("Uploading '{}' to '{}'".format(local_path, remote_path))
+    try:
+        connection.copy(src=local_path, dest=remote_path)
+        log.info("Upload completed.")
+    except Exception as e:
+        log.error("Upload failed: {}".format(e))
+
+
+def download_file(connection: pypsrp.client.Client, remote_path: str, local_path: str):
+    """Downloads a file from the remote host."""
+    file_name = remote_path.split("\\")[-1]
+
+    if local_path == ".":
+        local_path = Path.cwd().joinpath(file_name)
+    elif Path(local_path).is_dir():
+        local_path = Path(local_path).joinpath(file_name)
+
+    log.info("Downloading '{}' to '{}'".format(remote_path, local_path))
+    try:
+        connection.fetch(src=remote_path, dest=local_path)
+        log.info("Download completed.")
+    except Exception as e:
+        log.error("Download failed: {e}".format(e))
+
+
 def interactive_shell(client: pypsrp.client.Client):
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -47,6 +84,24 @@ def interactive_shell(client: pypsrp.client.Client):
             # Check for exit command
             if cmd_input.lower() == "exit":
                 break
+            elif cmd_input.lower().startswith("download"):
+                parts = cmd_input.split(maxsplit=2)
+                if len(parts) == 3:
+                    remote_path = parts[1]
+                    local_path = parts[2]
+                    download_file(client, remote_path, local_path)
+                else:
+                    print("Usage: download C:\\remote\\path /local/path")
+                continue  # Go to next cmd_input
+            elif cmd_input.lower().startswith("upload"):
+                parts = cmd_input.split(maxsplit=2)
+                if len(parts) == 3:
+                    local_path = parts[1]
+                    remote_path = parts[2]
+                    upload_file(client, local_path, remote_path)
+                else:
+                    print("Usage: upload /local/path C:\\remote\\path")
+                continue  # Go to next cmd_input
 
             # Otherwise, execute the command
             output, streams, had_errors = client.execute_ps(cmd_input)
