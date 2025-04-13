@@ -1,14 +1,26 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import sys
+from pathlib import Path
 
 import pypsrp
 import pypsrp.client
 
 from evil_winrm_py import __version__
 
+# --- Logging Setup ---
+full_logging_path = Path.cwd().joinpath("evil_winrm_py.log")
+log = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    filename=full_logging_path,
+)
 
+
+# --- Helper Functions ---
 def get_prompt(connection: pypsrp.client.Client):
     try:
         output, streams, had_errors = connection.execute_ps(
@@ -17,13 +29,13 @@ def get_prompt(connection: pypsrp.client.Client):
         if not had_errors:
             return f"PS {output}> "
     except Exception as e:
-        print(f"Error in interactive shell loop: {e}")
+        log.error("Error in interactive shell loop: {}".format(e))
     return "PS ?> "  # Fallback prompt
 
 
 def interactive_shell(client: pypsrp.client.Client):
     """Runs the interactive pseudo-shell."""
-
+    log.info("Starting interactive PowerShell session...")
     while True:
         try:
             prompt_text = get_prompt(client)
@@ -56,6 +68,9 @@ def interactive_shell(client: pypsrp.client.Client):
 
 # --- Main Function ---
 def main():
+    log.info(
+        "--- Evil-WinRM-Py v{} started ---".format(__version__)
+    )  # Log the start of the program
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -77,6 +92,7 @@ def main():
 
     # --- Initialize WinRM Session ---
     try:
+        log.info("Connecting to {}:{} as {}".format(args.ip, args.port, args.user))
         # Create a client instance
         client = pypsrp.client.Client(
             server=args.ip,
@@ -91,5 +107,5 @@ def main():
         # run the interactive shell
         interactive_shell(client)
     except Exception as e:
-        print(e)
+        log.exception("An unexpected error occurred: {}".format(e))
         sys.exit(1)
