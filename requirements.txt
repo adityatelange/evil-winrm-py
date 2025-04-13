@@ -1,0 +1,11 @@
+certifi==2025.1.31
+cffi==1.17.1
+charset-normalizer==3.4.1
+cryptography==44.0.2
+idna==3.10
+pycparser==2.22
+pypsrp==0.8.1
+pyspnego==0.11.2
+requests==2.32.3
+setuptools==78.1.0
+urllib3==2.4.0
