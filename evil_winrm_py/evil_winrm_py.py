@@ -70,6 +70,17 @@ def download_file(connection: pypsrp.client.Client, remote_path: str, local_path
         log.error("Download failed: {e}".format(e))
 
 
+def show_menu():
+    """Displays the help menu for interactive commands."""
+    print("[+] upload /path/to/local/file C:\\path\\to\\remote\\file\t- Upload a file")
+    print(
+        "[+] download C:\\path\\to\\remote\\file /path/to/local/file\t- Download a file"
+    )
+    print("[+] menu\t\t\t\t\t\t- Show this menu")
+    print("[+] exit\t\t\t\t\t\t- Exit the shell")
+    print("Note: Use absolute paths for upload/download for reliability.\n")
+
+
 def interactive_shell(client: pypsrp.client.Client):
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -84,6 +95,9 @@ def interactive_shell(client: pypsrp.client.Client):
             # Check for exit command
             if cmd_input.lower() == "exit":
                 break
+            elif cmd_input.lower() == "menu":
+                show_menu()
+                continue
             elif cmd_input.lower().startswith("download"):
                 parts = cmd_input.split(maxsplit=2)
                 if len(parts) == 3:
@@ -91,7 +105,9 @@ def interactive_shell(client: pypsrp.client.Client):
                     local_path = parts[2]
                     download_file(client, remote_path, local_path)
                 else:
-                    print("Usage: download C:\\remote\\path /local/path")
+                    print(
+                        "Usage: download C:\\path\\to\\remote\\file /path/to/local/file"
+                    )
                 continue  # Go to next cmd_input
             elif cmd_input.lower().startswith("upload"):
                 parts = cmd_input.split(maxsplit=2)
@@ -100,7 +116,9 @@ def interactive_shell(client: pypsrp.client.Client):
                     remote_path = parts[2]
                     upload_file(client, local_path, remote_path)
                 else:
-                    print("Usage: upload /local/path C:\\remote\\path")
+                    print(
+                        "Usage: upload /path/to/local/file C:\\path\\to\\remote\\file"
+                    )
                 continue  # Go to next cmd_input
 
             # Otherwise, execute the command
