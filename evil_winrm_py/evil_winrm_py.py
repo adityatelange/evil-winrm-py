@@ -71,6 +71,14 @@ def main():
     log.info(
         "--- Evil-WinRM-Py v{} started ---".format(__version__)
     )  # Log the start of the program
+    print(
+        """        ▘▜      ▘             
+    █▌▌▌▌▐ ▄▖▌▌▌▌▛▌▛▘▛▛▌▄▖▛▌▌▌
+    ▙▖▚▘▌▐▖  ▚▚▘▌▌▌▌ ▌▌▌  ▙▌▙▌
+                          ▌ ▄▌ v{}""".format(
+            __version__
+        )
+    )  # Print the banner
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
