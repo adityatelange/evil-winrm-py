@@ -9,12 +9,26 @@ import pypsrp.client
 from evil_winrm_py import __version__
 
 
+def get_prompt(connection: pypsrp.client.Client):
+    try:
+        output, streams, had_errors = connection.execute_ps(
+            "$pwd.Path"
+        )  # Get current working directory
+        if not had_errors:
+            return f"PS {output}> "
+    except Exception as e:
+        print(f"Error in interactive shell loop: {e}")
+    return "PS ?> "  # Fallback prompt
+
+
 def interactive_shell(client: pypsrp.client.Client):
     """Runs the interactive pseudo-shell."""
 
     while True:
         try:
-            cmd_input = input("PS> ")  # Prompt for command input
+            prompt_text = get_prompt(client)
+            cmd_input = input(prompt_text).strip()  # Get user input
+
             if not cmd_input:
                 continue
 
