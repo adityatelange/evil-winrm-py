@@ -42,5 +42,4 @@ setup(
     entry_points={
         "console_scripts": ["evil-winrm-py = evil_winrm_py.evil_winrm_py:main"]
     },
-    keywords=["declutter", "crawling", "pentesting", "bugbounty"],
 )
