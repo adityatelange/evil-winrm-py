@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import readline
 import sys
 from pathlib import Path
 
@@ -9,6 +10,11 @@ import pypsrp
 import pypsrp.client
 
 from evil_winrm_py import __version__
+
+
+# --- Constants ---
+HISTORY_FILE = Path.home().joinpath(".evil_winrm_py_history")
+HISTORY_LENGTH = 1000
 
 # --- Logging Setup ---
 full_logging_path = Path.cwd().joinpath("evil_winrm_py.log")
@@ -84,6 +90,13 @@ def show_menu():
 def interactive_shell(client: pypsrp.client.Client):
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
+
+    # Set up history file
+    if not HISTORY_FILE.exists():
+        Path(HISTORY_FILE).touch()
+    readline.read_history_file(HISTORY_FILE)
+    readline.set_history_length(HISTORY_LENGTH)
+
     while True:
         try:
             prompt_text = get_prompt(client)
@@ -137,6 +150,8 @@ def interactive_shell(client: pypsrp.client.Client):
             print(f"Error in interactive shell loop: {e}")
             # Decide whether to break or continue
             break
+        finally:
+            readline.write_history_file(HISTORY_FILE)
 
 
 # --- Main Function ---
