@@ -189,6 +189,10 @@ def main():
 
     args = parser.parse_args()
 
+    # --- Ask for password if not provided ---
+    if not args.password:
+        args.password = input("Password: ")
+
     # --- Initialize WinRM Session ---
     try:
         log.info("Connecting to {}:{} as {}".format(args.ip, args.port, args.user))
