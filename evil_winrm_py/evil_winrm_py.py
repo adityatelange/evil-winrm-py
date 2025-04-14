@@ -97,6 +97,9 @@ def interactive_shell(client: pypsrp.client.Client):
     readline.read_history_file(HISTORY_FILE)
     readline.set_history_length(HISTORY_LENGTH)
 
+    # Set up tab completion
+    readline.parse_and_bind("tab: complete")
+
     while True:
         try:
             prompt_text = get_prompt(client)
