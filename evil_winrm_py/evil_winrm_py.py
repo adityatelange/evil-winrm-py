@@ -140,7 +140,8 @@ def interactive_shell(client: pypsrp.client.Client):
             # Otherwise, execute the command
             output, streams, had_errors = client.execute_ps(cmd_input)
             if had_errors:
-                print("ERROR: {}".format(output))
+                for err in streams.error:
+                    print("{}".format(err))
             else:
                 print(output)
         except KeyboardInterrupt:
