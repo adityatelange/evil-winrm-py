@@ -13,16 +13,16 @@ from evil_winrm_py import __version__
 
 
 # --- Constants ---
+LOG_PATH = Path.cwd().joinpath("evil_winrm_py.log")
 HISTORY_FILE = Path.home().joinpath(".evil_winrm_py_history")
 HISTORY_LENGTH = 1000
 
 # --- Logging Setup ---
-full_logging_path = Path.cwd().joinpath("evil_winrm_py.log")
 log = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    filename=full_logging_path,
+    filename=LOG_PATH,
 )
 
 
