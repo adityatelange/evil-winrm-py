@@ -6,11 +6,10 @@ import readline
 import sys
 from pathlib import Path
 
-import pypsrp
-import pypsrp.client
+from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
+from pypsrp.wsman import WSMan
 
 from evil_winrm_py import __version__
-
 
 # --- Constants ---
 LOG_PATH = Path.cwd().joinpath("evil_winrm_py.log")
@@ -27,53 +26,25 @@ logging.basicConfig(
 
 
 # --- Helper Functions ---
-def get_prompt(client: pypsrp.client.Client):
+def run_ps(pool: RunspacePool, command: str) -> tuple:
+    """Runs a PowerShell command and returns the output, streams, and error status."""
+    ps = PowerShell(pool)
+    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+    ps.add_cmdlet("Out-String").add_parameter("Stream")
+    ps.invoke()
+    return "\n".join(ps.output), ps.streams, ps.had_errors
+
+
+def get_prompt(pool: RunspacePool):
     try:
-        output, streams, had_errors = client.execute_ps(
-            "$pwd.Path"
+        output, streams, had_errors = run_ps(
+            pool, "$pwd.Path"
         )  # Get current working directory
         if not had_errors:
             return f"PS {output}> "
     except Exception as e:
         log.error("Error in interactive shell loop: {}".format(e))
     return "PS ?> "  # Fallback prompt
-
-
-def upload_file(client: pypsrp.client.Client, local_path: str, remote_path: str):
-    """Uploads a file to the remote host."""
-    print(local_path)
-    if not Path(local_path).is_file():
-        log.error("Local file not found: {}".format(local_path))
-        return
-
-    file_name = local_path.split("/")[-1]
-
-    if remote_path == ".":
-        remote_path = file_name
-
-    log.info("Uploading '{}' to '{}'".format(local_path, remote_path))
-    try:
-        client.copy(src=local_path, dest=remote_path)
-        log.info("Upload completed.")
-    except Exception as e:
-        log.error("Upload failed: {}".format(e))
-
-
-def download_file(client: pypsrp.client.Client, remote_path: str, local_path: str):
-    """Downloads a file from the remote host."""
-    file_name = remote_path.split("\\")[-1]
-
-    if local_path == ".":
-        local_path = Path.cwd().joinpath(file_name)
-    elif Path(local_path).is_dir():
-        local_path = Path(local_path).joinpath(file_name)
-
-    log.info("Downloading '{}' to '{}'".format(remote_path, local_path))
-    try:
-        client.fetch(src=remote_path, dest=local_path)
-        log.info("Download completed.")
-    except Exception as e:
-        log.error("Download failed: {e}".format(e))
 
 
 def show_menu():
@@ -87,7 +58,9 @@ def show_menu():
     print("Note: Use absolute paths for upload/download for reliability.\n")
 
 
-def interactive_shell(client: pypsrp.client.Client):
+def interactive_shell(
+    wsman: WSMan, configuration_name: str = DEFAULT_CONFIGURATION_NAME
+):
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
 
@@ -100,62 +73,40 @@ def interactive_shell(client: pypsrp.client.Client):
     # Set up tab completion
     readline.parse_and_bind("tab: complete")
 
-    while True:
-        try:
-            prompt_text = get_prompt(client)
-            cmd_input = input(prompt_text).strip()  # Get user input
+    with RunspacePool(wsman, configuration_name=configuration_name) as r_pool:
+        while True:
+            try:
+                prompt_text = get_prompt(r_pool)
+                cmd_input = input(prompt_text).strip()  # Get user input
 
-            if not cmd_input:
-                continue
+                if not cmd_input:
+                    continue
 
-            # Check for exit command
-            if cmd_input.lower() == "exit":
+                # Check for exit command
+                if cmd_input.lower() == "exit":
+                    break
+                elif cmd_input.lower() == "menu":
+                    show_menu()
+                    continue
+
+                # Otherwise, execute the command
+                output, streams, had_errors = run_ps(r_pool, cmd_input)
+                if had_errors:
+                    for err in streams.error:
+                        print("{}".format(err))
+                else:
+                    print(output)
+            except KeyboardInterrupt:
+                print("\nCaught Ctrl+C. Type 'exit' or press Ctrl+D to exit.")
+                continue  # Allow user to continue or type exit
+            except EOFError:
+                break  # Exit on Ctrl+D
+            except Exception as e:
+                print(f"Error in interactive shell loop: {e}")
+                # Decide whether to break or continue
                 break
-            elif cmd_input.lower() == "menu":
-                show_menu()
-                continue
-            elif cmd_input.lower().startswith("download"):
-                parts = cmd_input.split(maxsplit=2)
-                if len(parts) == 3:
-                    remote_path = parts[1]
-                    local_path = parts[2]
-                    download_file(client, remote_path, local_path)
-                else:
-                    print(
-                        "Usage: download C:\\path\\to\\remote\\file /path/to/local/file"
-                    )
-                continue  # Go to next cmd_input
-            elif cmd_input.lower().startswith("upload"):
-                parts = cmd_input.split(maxsplit=2)
-                if len(parts) == 3:
-                    local_path = parts[1]
-                    remote_path = parts[2]
-                    upload_file(client, local_path, remote_path)
-                else:
-                    print(
-                        "Usage: upload /path/to/local/file C:\\path\\to\\remote\\file"
-                    )
-                continue  # Go to next cmd_input
-
-            # Otherwise, execute the command
-            output, streams, had_errors = client.execute_ps(cmd_input)
-            if had_errors:
-                for err in streams.error:
-                    print("{}".format(err))
-            else:
-                print(output)
-        except KeyboardInterrupt:
-            print("\nCaught Ctrl+C. Type 'exit' to quit.")
-            continue  # Allow user to continue or type exit
-        except EOFError:
-            print("\nEOF received, exiting.")
-            break  # Exit on Ctrl+D
-        except Exception as e:
-            print(f"Error in interactive shell loop: {e}")
-            # Decide whether to break or continue
-            break
-        finally:
-            readline.write_history_file(HISTORY_FILE)
+        # Save history to file
+        readline.write_history_file(HISTORY_FILE)
 
 
 # --- Main Function ---
@@ -197,8 +148,8 @@ def main():
     # --- Initialize WinRM Session ---
     try:
         log.info("Connecting to {}:{} as {}".format(args.ip, args.port, args.user))
-        # Create a client instance
-        client = pypsrp.client.Client(
+
+        with WSMan(
             server=args.ip,
             port=args.port,
             auth="ntlm",
@@ -206,10 +157,8 @@ def main():
             password=args.password,
             ssl=False,
             cert_validation=False,
-        )
-
-        # run the interactive shell
-        interactive_shell(client)
+        ) as wsman:
+            interactive_shell(wsman)
     except Exception as e:
         log.exception("An unexpected error occurred: {}".format(e))
         sys.exit(1)
