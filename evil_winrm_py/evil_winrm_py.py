@@ -6,8 +6,9 @@ import readline
 import sys
 from pathlib import Path
 
+from pypsrp.exceptions import AuthenticationError, WinRMTransportError
 from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
-from pypsrp.wsman import WSMan
+from pypsrp.wsman import WSMan, requests
 
 from evil_winrm_py import __version__
 
@@ -40,6 +41,7 @@ logging.basicConfig(
 # --- Helper Functions ---
 def run_ps(pool: RunspacePool, command: str) -> tuple:
     """Runs a PowerShell command and returns the output, streams, and error status."""
+    log.info("Executing command: {}".format(command))
     ps = PowerShell(pool)
     ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
     ps.add_cmdlet("Out-String").add_parameter("Stream")
@@ -107,7 +109,6 @@ def interactive_shell(
                     continue
 
                 # Otherwise, execute the command
-                log.info("Executing command: {}".format(cmd_input))
                 output, streams, had_errors = run_ps(r_pool, cmd_input)
                 if had_errors:
                     if streams.error:
@@ -137,7 +138,7 @@ def interactive_shell(
             except EOFError:
                 break  # Exit on Ctrl+D
             except Exception as e:
-                print(f"Error in interactive shell loop: {e}")
+                print(f"Error in interactive shell loop: {e} {e.__class__}")
                 # Decide whether to break or continue
                 break
         # Save history to file
@@ -183,6 +184,11 @@ def main():
     # --- Initialize WinRM Session ---
     try:
         log.info("Connecting to {}:{} as {}".format(args.ip, args.port, args.user))
+        print(
+            BLUE
+            + "[*] Connecting to {}:{} as {}".format(args.ip, args.port, args.user)
+            + RESET
+        )
 
         with WSMan(
             server=args.ip,
@@ -194,6 +200,16 @@ def main():
             cert_validation=False,
         ) as wsman:
             interactive_shell(wsman)
+    except WinRMTransportError as wte:
+        print(RED + "[-] WinRM transport error: {}".format(wte) + RESET)
+        log.error("WinRM transport error: {}".format(wte))
+    except requests.exceptions.ConnectionError as ce:
+        print(RED + "[-] Connection error: {}".format(ce) + RESET)
+        log.error("Connection error: {}".format(ce))
+    except AuthenticationError as ae:
+        print(RED + "[-] Authentication failed: {}".format(ae) + RESET)
+        log.error("Authentication failed: {}".format(ae))
     except Exception as e:
+        print(e.__class__, e)
         log.exception("An unexpected error occurred: {}".format(e))
         sys.exit(1)
