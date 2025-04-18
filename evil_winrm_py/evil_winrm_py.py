@@ -85,7 +85,24 @@ def interactive_shell(
     readline.read_history_file(HISTORY_FILE)
     readline.set_history_length(HISTORY_LENGTH)
 
-    # Set up tab completion
+    MENU_COMMANDS = [
+        "upload",
+        "download",
+        "menu",
+        "clear",
+        "exit",
+    ]
+
+    # Set up tab completion for menu commands
+    def menu_completer(text, state):
+        """Tab completion for commands."""
+        options = [cmd for cmd in MENU_COMMANDS if cmd.startswith(text)]
+        if state < len(options):
+            return options[state]
+        else:
+            return None
+
+    readline.set_completer(menu_completer)
     readline.parse_and_bind("tab: complete")
 
     with RunspacePool(wsman, configuration_name=configuration_name) as r_pool:
