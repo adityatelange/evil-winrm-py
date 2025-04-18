@@ -16,6 +16,18 @@ LOG_PATH = Path.cwd().joinpath("evil_winrm_py.log")
 HISTORY_FILE = Path.home().joinpath(".evil_winrm_py_history")
 HISTORY_LENGTH = 1000
 
+# --- Colors ---
+# ANSI escape codes for colored output
+RESET = "\033[0m"
+RED = "\033[31m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+BLUE = "\033[34m"
+MAGENTA = "\033[35m"
+CYAN = "\033[36m"
+BOLD = "\033[1m"
+
+
 # --- Logging Setup ---
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -41,7 +53,7 @@ def get_prompt(pool: RunspacePool):
             pool, "$pwd.Path"
         )  # Get current working directory
         if not had_errors:
-            return f"PS {output}> "
+            return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET} {output}> "
     except Exception as e:
         log.error("Error in interactive shell loop: {}".format(e))
     return "PS ?> "  # Fallback prompt
