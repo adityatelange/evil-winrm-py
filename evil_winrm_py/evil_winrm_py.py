@@ -66,7 +66,7 @@ def show_menu():
         "[+] download C:\\path\\to\\remote\\file /path/to/local/file\t- Download a file"
     )
     print("[+] menu\t\t\t\t\t\t- Show this menu")
-    print("[+] clear / cls\t\t\t\t\t- Clear the screen")
+    print("[+] clear, cls\t\t\t\t\t\t- Clear the screen")
     print("[+] exit\t\t\t\t\t\t- Exit the shell")
     print("Note: Use absolute paths for upload/download for reliability.\n")
 
