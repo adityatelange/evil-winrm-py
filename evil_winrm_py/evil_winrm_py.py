@@ -54,6 +54,7 @@ def show_menu():
         "[+] download C:\\path\\to\\remote\\file /path/to/local/file\t- Download a file"
     )
     print("[+] menu\t\t\t\t\t\t- Show this menu")
+    print("[+] clear / cls\t\t\t\t\t- Clear the screen")
     print("[+] exit\t\t\t\t\t\t- Exit the shell")
     print("Note: Use absolute paths for upload/download for reliability.\n")
 
@@ -85,6 +86,10 @@ def interactive_shell(
                 # Check for exit command
                 if cmd_input.lower() == "exit":
                     break
+                elif cmd_input.lower() in ["clear", "cls"]:
+                    # Clear the screen
+                    print("\033[H\033[J", end="")
+                    continue
                 elif cmd_input.lower() == "menu":
                     show_menu()
                     continue
