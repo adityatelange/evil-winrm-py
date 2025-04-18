@@ -95,11 +95,29 @@ def interactive_shell(
                     continue
 
                 # Otherwise, execute the command
+                log.info("Executing command: {}".format(cmd_input))
                 output, streams, had_errors = run_ps(r_pool, cmd_input)
                 if had_errors:
-                    for err in streams.error:
-                        print("{}".format(err))
-                else:
+                    if streams.error:
+                        for error in streams.error:
+                            print(error)
+                    # Uncomment the following lines to display different stream types
+                    # if streams.warning:
+                    #     for warn in streams.warning:
+                    #         print("Warning: {}".format(warn))
+                    # if streams.verbose:
+                    #     for verb in streams.verbose:
+                    #         print("Verbose: {}".format(verb))
+                    # if streams.debug:
+                    #     for deb in streams.debug:
+                    #         print("Debug: {}".format(deb))
+                    # if streams.progress:
+                    #     for prog in streams.progress:
+                    #         print("Progress: {}".format(prog))
+                    # if streams.information:
+                    #     for info in streams.information:
+                    #         print("Information: {}".format(info))
+                elif output:
                     print(output)
             except KeyboardInterrupt:
                 print("\nCaught Ctrl+C. Type 'exit' or press Ctrl+D to exit.")
