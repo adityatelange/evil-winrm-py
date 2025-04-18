@@ -50,14 +50,11 @@ def run_ps(pool: RunspacePool, command: str) -> tuple:
 
 
 def get_prompt(pool: RunspacePool):
-    try:
-        output, streams, had_errors = run_ps(
-            pool, "$pwd.Path"
-        )  # Get current working directory
-        if not had_errors:
-            return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET} {output}> "
-    except Exception as e:
-        log.error("Error in interactive shell loop: {}".format(e))
+    output, streams, had_errors = run_ps(
+        pool, "$pwd.Path"
+    )  # Get current working directory
+    if not had_errors:
+        return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET} {output}> "
     return "PS ?> "  # Fallback prompt
 
 
