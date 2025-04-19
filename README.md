@@ -27,8 +27,10 @@ pipx install .
 ## Features
 
 - Run commands on remote Windows machines.
-- Upload and download files.
 - Interactive shell.
+- Logging and debugging options.
+- Command history.
+- Colorized output.
 
 ## Usage
 
