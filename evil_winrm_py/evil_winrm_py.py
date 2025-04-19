@@ -3,9 +3,11 @@
 import argparse
 import logging
 import readline
+import signal
 import sys
 from pathlib import Path
 
+from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError
 from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
 from pypsrp.wsman import WSMan, requests
@@ -39,6 +41,26 @@ logging.basicConfig(
 
 
 # --- Helper Functions ---
+class DelayedKeyboardInterrupt:
+    """Context manager to delay handling of KeyboardInterrupt."""
+
+    def __enter__(self):
+        self.signal_received = False
+        self.old_handler = signal.getsignal(signal.SIGINT)
+
+        def handler(sig, frame):
+            print(RED + "\n[-] Caught Ctrl+C. Stopping current command..." + RESET)
+            self.signal_received = (sig, frame)
+
+        signal.signal(signal.SIGINT, handler)
+
+    def __exit__(self, type, value, traceback):
+        signal.signal(signal.SIGINT, self.old_handler)
+        if self.signal_received:
+            # raise the signal after the task is done
+            self.old_handler(*self.signal_received)
+
+
 def run_ps(pool: RunspacePool, command: str) -> tuple:
     """Runs a PowerShell command and returns the output, streams, and error status."""
     log.info("Executing command: {}".format(command))
@@ -102,59 +124,61 @@ def interactive_shell(
     readline.set_completer(menu_completer)
     readline.parse_and_bind("tab: complete")
 
-    with RunspacePool(wsman, configuration_name=configuration_name) as r_pool:
+    with wsman, RunspacePool(wsman, configuration_name=configuration_name) as r_pool:
         while True:
             try:
                 prompt_text = get_prompt(r_pool)
-                cmd_input = input(prompt_text).strip()  # Get user input
+                command = input(prompt_text)
 
-                if not cmd_input:
+                if not command:
                     continue
 
+                command = command.strip()  # Remove leading/trailing whitespace
+                command = command.strip('"').strip("'")  # Remove quotes
+                command_lower = command.lower()
+
                 # Check for exit command
-                if cmd_input.lower() == "exit":
+                if command_lower == "exit":
                     break
-                elif cmd_input.lower() in ["clear", "cls"]:
+                elif command_lower in ["clear", "cls"]:
                     # Clear the screen
                     print("\033[H\033[J", end="")
                     continue
-                elif cmd_input.lower() == "menu":
+                elif command_lower == "menu":
                     show_menu()
                     continue
+                else:
+                    try:
+                        ps = PowerShell(r_pool)
+                        ps.add_cmdlet("Invoke-Expression").add_parameter(
+                            "Command", command
+                        )
+                        ps.add_cmdlet("Out-String").add_parameter("Stream")
+                        ps.begin_invoke()
+                        log.info("Executing command: {}".format(command))
 
-                # Otherwise, execute the command
-                output, streams, had_errors = run_ps(r_pool, cmd_input)
-                if had_errors:
-                    if streams.error:
-                        for error in streams.error:
-                            print(error)
-                    # Uncomment the following lines to display different stream types
-                    # if streams.warning:
-                    #     for warn in streams.warning:
-                    #         print("Warning: {}".format(warn))
-                    # if streams.verbose:
-                    #     for verb in streams.verbose:
-                    #         print("Verbose: {}".format(verb))
-                    # if streams.debug:
-                    #     for deb in streams.debug:
-                    #         print("Debug: {}".format(deb))
-                    # if streams.progress:
-                    #     for prog in streams.progress:
-                    #         print("Progress: {}".format(prog))
-                    # if streams.information:
-                    #     for info in streams.information:
-                    #         print("Information: {}".format(info))
-                elif output:
-                    print(output)
+                        cursor = 0
+                        while ps.state == PSInvocationState.RUNNING:
+                            with DelayedKeyboardInterrupt():
+                                ps.poll_invoke()
+                            output = ps.output
+                            for line in output[cursor:]:
+                                print(line)
+                            cursor = len(output)
+
+                        if ps.had_errors:
+                            if ps.streams.error:
+                                for error in ps.streams.error:
+                                    print(error)
+                    except KeyboardInterrupt:
+                        if ps.state == PSInvocationState.RUNNING:
+                            ps.stop()
             except KeyboardInterrupt:
                 print("\nCaught Ctrl+C. Type 'exit' or press Ctrl+D to exit.")
                 continue  # Allow user to continue or type exit
             except EOFError:
+                print()
                 break  # Exit on Ctrl+D
-            except Exception as e:
-                print(f"Error in interactive shell loop: {e} {e.__class__}")
-                # Decide whether to break or continue
-                break
         # Save history to file
         readline.write_history_file(HISTORY_FILE)
 
