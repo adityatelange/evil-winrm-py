@@ -24,6 +24,18 @@ cd evil-winrm-py
 pipx install .
 ```
 
+### Update
+
+```bash
+pipx upgrade evil-winrm-py
+```
+
+### Uninstall
+
+```bash
+pipx uninstall evil-winrm-py
+```
+
 ## Features
 
 - Run commands on remote Windows machines.
@@ -35,7 +47,7 @@ pipx install .
 ## Usage
 
 ```bash
-usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [--port PORT] [--version]
+usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--port PORT] [--version]
 
 options:
   -h, --help            show this help message and exit

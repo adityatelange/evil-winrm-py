@@ -28,3 +28,11 @@ python3 -m build
 python3 -m twine upload dist/evil_winrm_py-$VERSION*
 # example: python3 -m twine upload dist/evil_winrm_py-0.0.2*
 ```
+
+# Miscellaneous
+
+Creating screenshots for the README using the [freeze](https://github.com/charmbracelet/freeze) tool.
+
+```bash
+freeze --execute "evil-winrm-py -h" -o assets/terminal.png --padding 2
+```
