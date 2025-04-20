@@ -178,6 +178,7 @@ def interactive_shell(
                 print("\nCaught Ctrl+C. Type 'exit' or press Ctrl+D to exit.")
                 continue  # Allow user to continue or type exit
             except EOFError:
+                r_pool.close()
                 print()
                 break  # Exit on Ctrl+D
         # Save history to file
