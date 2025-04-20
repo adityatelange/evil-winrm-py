@@ -43,6 +43,7 @@ options:
   -u USER, --user USER  username
   -p PASSWORD, --password PASSWORD
                         password
+  -H HASH, --hash HASH  nthash
   --port PORT           remote host port (default 5985)
   --version             show version
 ```

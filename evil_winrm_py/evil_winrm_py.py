@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import re
 import readline
 import signal
 import sys
@@ -206,6 +207,7 @@ def main():
     )
     parser.add_argument("-u", "--user", required=True, help="username")
     parser.add_argument("-p", "--password", help="password")
+    parser.add_argument("-H", "--hash", help="nthash")
     parser.add_argument(
         "--port", type=int, default=5985, help="remote host port (default 5985)"
     )
@@ -216,6 +218,15 @@ def main():
     args = parser.parse_args()
 
     # --- Ask for password if not provided ---
+    if args.hash and args.password:
+        print(RED + "[-] You cannot use both password and hash." + RESET)
+        sys.exit(1)
+    if args.hash:
+        ntlm_hash_pattern = r"^[0-9a-fA-F]{32}$"
+        if re.match(ntlm_hash_pattern, args.hash):
+            args.password = "00000000000000000000000000000000:{}".format(args.hash)
+        else:
+            print(RED + "[-] Invalid NTLM hash format." + RESET)
     if not args.password:
         args.password = input("Password: ")
 
