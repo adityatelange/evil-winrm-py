@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+evil-winrm-py
+https://github.com/adityatelange/evil-winrm-py
+"""
 
 import argparse
 import logging
