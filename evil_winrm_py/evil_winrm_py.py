@@ -328,7 +328,7 @@ def main():
         else:
             print(RED + "[-] Invalid NTLM hash format." + RESET)
     if not args.password:
-        args.password = input("Password: ")
+        args.password = prompt("Password: ", is_password=True)
 
     # --- Initialize WinRM Session ---
     try:
