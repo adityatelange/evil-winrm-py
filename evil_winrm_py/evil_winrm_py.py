@@ -93,6 +93,59 @@ def show_menu():
     print("Note: Use absolute paths for upload/download for reliability.\n")
 
 
+def get_directory_and_partial_name(text):
+    """
+    Parses the input text to find the directory prefix and the partial name.
+    """
+    if not re.match(r"^[a-zA-Z]:", text):
+        directory_prefix = ""
+        partial_name = text
+    else:
+        # Find the last unquoted slash or backslash
+        last_sep_index = text.rfind("\\")
+        if last_sep_index == -1:
+            # No separator found, the whole text is the partial name in the current directory
+            directory_prefix = ""
+            partial_name = text
+        else:
+            split_at = last_sep_index + 1
+            directory_prefix = text[:split_at]
+            partial_name = text[split_at:]
+    return directory_prefix, partial_name
+
+
+def get_remote_path_suggestions(
+    pool: RunspacePool,
+    directory_prefix: str,
+    partial_name: str,
+    dirs_only: bool = False,
+) -> list[str]:
+    """Returns a list of suggested remote paths based on the partial path provided."""
+
+    if not re.match(r"^[a-zA-Z]:", directory_prefix):
+        # If the path doesn't start with a drive letter, prepend the current directory
+        pwd, streams, had_errors = run_ps(
+            pool, "$pwd.Path"
+        )  # Get current working directory
+        directory_prefix = f"{pwd}\\{directory_prefix}"
+        exp = "Name"
+    else:
+        exp = "FullName"
+
+    if dirs_only:
+        attrs = "-Attributes Directory"
+    else:
+        attrs = ""
+
+    command = f'Get-ChildItem -LiteralPath "{directory_prefix}" -Filter "{partial_name}*" {attrs} -Fo | select -Exp {exp}'
+    print(command)
+    ps = PowerShell(pool)
+    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+    ps.add_cmdlet("Out-String").add_parameter("Stream")
+    ps.invoke()
+    return ps.output
+
+
 def interactive_shell(
     wsman: WSMan, configuration_name: str = DEFAULT_CONFIGURATION_NAME
 ):
@@ -112,20 +165,55 @@ def interactive_shell(
         "clear",
         "exit",
     ]
-
-    # Set up tab completion for menu commands
-    def menu_completer(text, state):
-        """Tab completion for commands."""
-        options = [cmd for cmd in MENU_COMMANDS if cmd.startswith(text)]
-        if state < len(options):
-            return options[state]
-        else:
-            return None
-
-    readline.set_completer(menu_completer)
-    readline.parse_and_bind("tab: complete")
-
     with wsman, RunspacePool(wsman, configuration_name=configuration_name) as r_pool:
+        # Set up tab completion for menu commands
+        def completer(text, state):
+            """Tab completion for commands."""
+            buffer = readline.get_line_buffer()
+            tokens = buffer.split(maxsplit=1)
+            word_to_complete = ""
+            dirs_only = False
+            if len(tokens) == 2:
+                word_to_complete = tokens[1]
+                word_to_complete = word_to_complete.lstrip('"')
+                # Split the input into directory and partial name
+                directory_prefix, partial_name = get_directory_and_partial_name(
+                    word_to_complete
+                )
+                remote_paths_windows = get_remote_path_suggestions(
+                    r_pool, directory_prefix, partial_name
+                )
+                options = [path for path in remote_paths_windows]
+                options = [
+                    f'"{path}"' if path.find(" ") != -1 else path for path in options
+                ]
+            elif buffer.endswith(" "):
+                if tokens[0] == "cd":
+                    dirs_only = True
+                directory_prefix, partial_name = get_directory_and_partial_name(
+                    word_to_complete
+                )
+                remote_paths_windows = get_remote_path_suggestions(
+                    r_pool, directory_prefix, partial_name, dirs_only
+                )
+
+                options = [path for path in remote_paths_windows]
+                options = [
+                    f'"{path}"' if path.find(" ") != -1 else path for path in options
+                ]
+            else:
+                options = [cmd for cmd in MENU_COMMANDS if cmd.startswith(text)]
+            if state < len(options):
+                return options[state]
+            else:
+                return None
+
+        ## configure readline for windows powershell related delimiters
+        readline.set_completer_delims(" \t\n\"'(){}[];|&<>^!?,`")
+
+        readline.set_completer(completer)
+        readline.parse_and_bind("tab: complete")
+
         while True:
             try:
                 prompt_text = get_prompt(r_pool)
@@ -135,7 +223,6 @@ def interactive_shell(
                     continue
 
                 command = command.strip()  # Remove leading/trailing whitespace
-                command = command.strip('"').strip("'")  # Remove quotes
                 command_lower = command.lower()
 
                 # Check for exit command
