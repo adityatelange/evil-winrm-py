@@ -3,11 +3,16 @@
 import argparse
 import logging
 import re
-import readline
 import signal
 import sys
 from pathlib import Path
 
+from prompt_toolkit import PromptSession, prompt
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.completion import Completer, Completion
+from prompt_toolkit.document import Document
+from prompt_toolkit.formatted_text import ANSI
+from prompt_toolkit.history import FileHistory
 from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError
 from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
@@ -19,6 +24,13 @@ from evil_winrm_py import __version__
 LOG_PATH = Path.cwd().joinpath("evil_winrm_py.log")
 HISTORY_FILE = Path.home().joinpath(".evil_winrm_py_history")
 HISTORY_LENGTH = 1000
+MENU_COMMANDS = [
+    "upload",
+    "download",
+    "menu",
+    "clear",
+    "exit",
+]
 
 # --- Colors ---
 # ANSI escape codes for colored output
@@ -114,6 +126,47 @@ def get_directory_and_partial_name(text):
     return directory_prefix, partial_name
 
 
+class RemotePathCompleter(Completer):
+    def __init__(self, r_pool: RunspacePool):
+        self.r_pool = r_pool
+
+    def get_completions(self, document: Document, complete_event):
+        dirs_only = False
+        word_to_complete = ""
+        text_before_cursor = document.text_before_cursor
+        tokens = text_before_cursor.split(maxsplit=1)
+
+        if len(tokens) == 2:
+            word_to_complete = tokens[1]
+            directory_prefix, partial_name = get_directory_and_partial_name(
+                word_to_complete
+            )
+            suggestions = get_remote_path_suggestions(
+                self.r_pool, directory_prefix, partial_name
+            )
+        else:
+            word_to_complete = text_before_cursor
+            suggestions = MENU_COMMANDS
+
+        # Yield completions from the suggestions
+        for path in suggestions:
+            if path.startswith(word_to_complete):
+                text_to_insert = path[
+                    len(word_to_complete) :
+                ]  # Use original path for insertion
+                text_to_insert = (
+                    f'"{text_to_insert}"'
+                    if text_to_insert.find(" ") != -1
+                    else text_to_insert
+                )
+
+                yield Completion(
+                    text_to_insert,
+                    0,
+                    display=path,
+                )
+
+
 def get_remote_path_suggestions(
     pool: RunspacePool,
     directory_prefix: str,
@@ -138,7 +191,6 @@ def get_remote_path_suggestions(
         attrs = ""
 
     command = f'Get-ChildItem -LiteralPath "{directory_prefix}" -Filter "{partial_name}*" {attrs} -Fo | select -Exp {exp}'
-    print(command)
     ps = PowerShell(pool)
     ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
     ps.add_cmdlet("Out-String").add_parameter("Stream")
@@ -155,69 +207,21 @@ def interactive_shell(
     # Set up history file
     if not HISTORY_FILE.exists():
         Path(HISTORY_FILE).touch()
-    readline.read_history_file(HISTORY_FILE)
-    readline.set_history_length(HISTORY_LENGTH)
+    prompt_history = FileHistory(HISTORY_FILE)
+    prompt_session = PromptSession(history=prompt_history)
 
-    MENU_COMMANDS = [
-        "upload",
-        "download",
-        "menu",
-        "clear",
-        "exit",
-    ]
     with wsman, RunspacePool(wsman, configuration_name=configuration_name) as r_pool:
-        # Set up tab completion for menu commands
-        def completer(text, state):
-            """Tab completion for commands."""
-            buffer = readline.get_line_buffer()
-            tokens = buffer.split(maxsplit=1)
-            word_to_complete = ""
-            dirs_only = False
-            if len(tokens) == 2:
-                word_to_complete = tokens[1]
-                word_to_complete = word_to_complete.lstrip('"')
-                # Split the input into directory and partial name
-                directory_prefix, partial_name = get_directory_and_partial_name(
-                    word_to_complete
-                )
-                remote_paths_windows = get_remote_path_suggestions(
-                    r_pool, directory_prefix, partial_name
-                )
-                options = [path for path in remote_paths_windows]
-                options = [
-                    f'"{path}"' if path.find(" ") != -1 else path for path in options
-                ]
-            elif buffer.endswith(" "):
-                if tokens[0] == "cd":
-                    dirs_only = True
-                directory_prefix, partial_name = get_directory_and_partial_name(
-                    word_to_complete
-                )
-                remote_paths_windows = get_remote_path_suggestions(
-                    r_pool, directory_prefix, partial_name, dirs_only
-                )
-
-                options = [path for path in remote_paths_windows]
-                options = [
-                    f'"{path}"' if path.find(" ") != -1 else path for path in options
-                ]
-            else:
-                options = [cmd for cmd in MENU_COMMANDS if cmd.startswith(text)]
-            if state < len(options):
-                return options[state]
-            else:
-                return None
-
-        ## configure readline for windows powershell related delimiters
-        readline.set_completer_delims(" \t\n\"'(){}[];|&<>^!?,`")
-
-        readline.set_completer(completer)
-        readline.parse_and_bind("tab: complete")
+        completer = RemotePathCompleter(r_pool)
 
         while True:
             try:
-                prompt_text = get_prompt(r_pool)
-                command = input(prompt_text)
+                prompt_text = ANSI(get_prompt(r_pool))
+                command = prompt_session.prompt(
+                    prompt_text,
+                    completer=completer,
+                    complete_while_typing=False,
+                    auto_suggest=AutoSuggestFromHistory(),
+                )
 
                 if not command:
                     continue
@@ -268,8 +272,6 @@ def interactive_shell(
                 r_pool.close()
                 print()
                 break  # Exit on Ctrl+D
-        # Save history to file
-        readline.write_history_file(HISTORY_FILE)
 
 
 # --- Main Function ---
