@@ -235,7 +235,6 @@ def interactive_shell(
                     prompt_text,
                     completer=completer,
                     complete_while_typing=False,
-                    auto_suggest=AutoSuggestFromHistory(),
                 )
 
                 if not command:
