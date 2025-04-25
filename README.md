@@ -65,3 +65,4 @@ options:
 
 - Original evil-winrm project - https://github.com/Hackplayers/evil-winrm
 - PowerShell Remoting Protocol for Python - https://github.com/jborean93/pypsrp
+- Promp Toolkit - https://github.com/prompt-toolkit/python-prompt-toolkit
