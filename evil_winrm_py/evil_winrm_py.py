@@ -95,13 +95,18 @@ def get_prompt(pool: RunspacePool):
 
 def show_menu():
     """Displays the help menu for interactive commands."""
-    print("[+] upload /path/to/local/file C:\\path\\to\\remote\\file\t- Upload a file")
-    print(
-        "[+] download C:\\path\\to\\remote\\file /path/to/local/file\t- Download a file"
-    )
-    print("[+] menu\t\t\t\t\t\t- Show this menu")
-    print("[+] clear, cls\t\t\t\t\t\t- Clear the screen")
-    print("[+] exit\t\t\t\t\t\t- Exit the shell")
+    print(BOLD + "\nMenu:" + RESET)
+    commands = [
+        # ("command", "description")
+        ("upload /path/to/local/file C:\\path\\to\\remote\\file", "Upload a file"),
+        ("download C:\\path\\to\\remote\\file /path/to/local/file", "Download a file"),
+        ("menu", "Show this menu"),
+        ("clear, cls", "Clear the screen"),
+        ("exit", "Exit the shell"),
+    ]
+
+    for command, description in commands:
+        print(f"{CYAN}[+] {command:<55} - {description}{RESET}")
     print("Note: Use absolute paths for upload/download for reliability.\n")
 
 
