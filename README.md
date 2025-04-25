@@ -2,7 +2,7 @@
 
 Rewrite of popular tool evil-winrm in python
 
-![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/heads/main/assets/terminal.png)
+![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.4/assets/terminal.png)
 
 ## Motivation
 
@@ -43,6 +43,7 @@ pipx uninstall evil-winrm-py
 - Logging and debugging options.
 - Command history.
 - Colorized output.
+- Remote Path(files/directories) Completion.
 
 ## Usage
 
