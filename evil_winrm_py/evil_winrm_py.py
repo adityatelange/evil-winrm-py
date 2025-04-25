@@ -144,6 +144,16 @@ class RemotePathCompleter(Completer):
             suggestions = get_remote_path_suggestions(
                 self.r_pool, directory_prefix, partial_name
             )
+        elif (len(tokens) == 1) and text_before_cursor.endswith(" "):
+            # Check if the command is 'cd' to suggest directories only
+            if tokens[0] == "cd":
+                dirs_only = True
+            directory_prefix, partial_name = get_directory_and_partial_name(
+                word_to_complete
+            )
+            suggestions = get_remote_path_suggestions(
+                self.r_pool, directory_prefix, partial_name, dirs_only
+            )
         else:
             word_to_complete = text_before_cursor
             suggestions = MENU_COMMANDS
