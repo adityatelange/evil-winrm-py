@@ -19,6 +19,7 @@ from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.shortcuts import clear
 from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError
 from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
@@ -254,8 +255,7 @@ def interactive_shell(
                     r_pool.close()
                     break
                 elif command_lower in ["clear", "cls"]:
-                    # Clear the screen
-                    print("\033[H\033[J", end="")
+                    clear()  # Clear the screen
                     continue
                 elif command_lower == "menu":
                     show_menu()
