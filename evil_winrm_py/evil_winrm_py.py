@@ -62,7 +62,14 @@ logging.basicConfig(
 
 # --- Helper Functions ---
 class DelayedKeyboardInterrupt:
-    """Context manager to delay handling of KeyboardInterrupt."""
+    """
+    A context manager to delay the handling of a SIGINT (Ctrl+C) signal until
+    the enclosed block of code has completed execution.
+
+    This is useful for ensuring that critical sections of code are not
+    interrupted by a keyboard interrupt, while still allowing the signal
+    to be handled after the block finishes.
+    """
 
     def __enter__(self):
         self.signal_received = False
@@ -81,26 +88,27 @@ class DelayedKeyboardInterrupt:
             self.old_handler(*self.signal_received)
 
 
-def run_ps(pool: RunspacePool, command: str) -> tuple:
+def run_ps(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
     """Runs a PowerShell command and returns the output, streams, and error status."""
     log.info("Executing command: {}".format(command))
-    ps = PowerShell(pool)
+    ps = PowerShell(r_pool)
     ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
     ps.add_cmdlet("Out-String").add_parameter("Stream")
     ps.invoke()
     return "\n".join(ps.output), ps.streams, ps.had_errors
 
 
-def get_prompt(pool: RunspacePool):
+def get_prompt(r_pool: RunspacePool) -> str:
+    """Returns the prompt string for the interactive shell."""
     output, streams, had_errors = run_ps(
-        pool, "$pwd.Path"
+        r_pool, "$pwd.Path"
     )  # Get current working directory
     if not had_errors:
         return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET} {output}> "
     return "PS ?> "  # Fallback prompt
 
 
-def show_menu():
+def show_menu() -> None:
     """Displays the help menu for interactive commands."""
     print(BOLD + "\nMenu:" + RESET)
     commands = [
@@ -117,7 +125,7 @@ def show_menu():
     print("Note: Use absolute paths for upload/download for reliability.\n")
 
 
-def get_directory_and_partial_name(text):
+def get_directory_and_partial_name(text: str) -> tuple[str, str]:
     """
     Parses the input text to find the directory prefix and the partial name.
     """
@@ -139,6 +147,12 @@ def get_directory_and_partial_name(text):
 
 
 class RemotePathCompleter(Completer):
+    """
+    Completer for remote paths in the interactive shell.
+    It provides suggestions based on the current working directory and the
+    partial name entered by the user.
+    """
+
     def __init__(self, r_pool: RunspacePool):
         self.r_pool = r_pool
 
@@ -190,30 +204,31 @@ class RemotePathCompleter(Completer):
 
 
 def get_remote_path_suggestions(
-    pool: RunspacePool,
+    r_pool: RunspacePool,
     directory_prefix: str,
     partial_name: str,
     dirs_only: bool = False,
 ) -> list[str]:
-    """Returns a list of suggested remote paths based on the partial path provided."""
+    """
+    Returns a list of remote path suggestions based on the current directory
+    and the partial name entered by the user.
+    """
 
+    exp = "FullName"
+    attrs = ""
     if not re.match(r"^[a-zA-Z]:", directory_prefix):
         # If the path doesn't start with a drive letter, prepend the current directory
         pwd, streams, had_errors = run_ps(
-            pool, "$pwd.Path"
+            r_pool, "$pwd.Path"
         )  # Get current working directory
         directory_prefix = f"{pwd}\\{directory_prefix}"
         exp = "Name"
-    else:
-        exp = "FullName"
 
     if dirs_only:
         attrs = "-Attributes Directory"
-    else:
-        attrs = ""
 
     command = f'Get-ChildItem -LiteralPath "{directory_prefix}" -Filter "{partial_name}*" {attrs} -Fo | select -Exp {exp}'
-    ps = PowerShell(pool)
+    ps = PowerShell(r_pool)
     ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
     ps.add_cmdlet("Out-String").add_parameter("Stream")
     ps.invoke()
@@ -222,7 +237,7 @@ def get_remote_path_suggestions(
 
 def interactive_shell(
     wsman: WSMan, configuration_name: str = DEFAULT_CONFIGURATION_NAME
-):
+) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
 
@@ -297,9 +312,7 @@ def interactive_shell(
 
 # --- Main Function ---
 def main():
-    log.info(
-        "--- Evil-WinRM-Py v{} started ---".format(__version__)
-    )  # Log the start of the program
+    log.info("--- Evil-WinRM-Py v{} started ---".format(__version__))
     print(
         """        ▘▜      ▘             
     █▌▌▌▌▐ ▄▖▌▌▌▌▛▌▛▘▛▛▌▄▖▛▌▌▌
@@ -307,7 +320,7 @@ def main():
                           ▌ ▄▌ v{}""".format(
             __version__
         )
-    )  # Print the banner
+    )
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -329,16 +342,19 @@ def main():
 
     args = parser.parse_args()
 
-    # --- Ask for password if not provided ---
+    # --- Run checks on provided arguments ---
     if args.hash and args.password:
         print(RED + "[-] You cannot use both password and hash." + RESET)
         sys.exit(1)
+
     if args.hash:
         ntlm_hash_pattern = r"^[0-9a-fA-F]{32}$"
         if re.match(ntlm_hash_pattern, args.hash):
             args.password = "00000000000000000000000000000000:{}".format(args.hash)
         else:
             print(RED + "[-] Invalid NTLM hash format." + RESET)
+            sys.exit(1)
+
     if not args.password:
         args.password = prompt("Password: ", is_password=True)
 
