@@ -1,14 +1,28 @@
 # evil-winrm-py
 
-Rewrite of popular tool evil-winrm in python
+Evil-WinRM-Py is a Python-based tool for Windows Remote Management (WinRM) that allows users to execute commands on remote Windows machines.
 
 ![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.4/assets/terminal.png)
+
+> [!NOTE]
+> This tool is designed strictly for educational, ethical use, and authorized penetration testing. Always ensure you have explicit authorization before accessing any system. Unauthorized access or misuse of this tool is both illegal and unethical.
 
 ## Motivation
 
 The original evil-winrm is written in Ruby, which can be a hurdle for some users. Rewriting it in Python makes it more accessible and easier to use, while also allowing us to leverage Python’s rich ecosystem for added features and flexibility.
 
 I also wanted to learn more about winrm and its internals, so this project will also serve as a learning experience for me.
+
+## Features
+
+- Execute commands on remote Windows machines via an interactive shell.
+- Enable logging and debugging for better traceability.
+- Navigate command history using up/down arrow keys.
+- Display colorized output for improved readability.
+- Support for Pass-the-Hash authentication.
+- Auto-complete remote file and directory paths.
+- Lightweight and Python-based for ease of use.
+- Keyboard Interrupt (Ctrl+C) support to terminate long-running commands gracefully.
 
 ## Installation (on Linux)
 
@@ -36,15 +50,6 @@ pipx upgrade evil-winrm-py
 pipx uninstall evil-winrm-py
 ```
 
-## Features
-
-- Run commands on remote Windows machines.
-- Interactive shell.
-- Logging and debugging options.
-- Command history.
-- Colorized output.
-- Remote Path(files/directories) Completion.
-
 ## Usage
 
 ```bash
@@ -65,4 +70,4 @@ options:
 
 - Original evil-winrm project - https://github.com/Hackplayers/evil-winrm
 - PowerShell Remoting Protocol for Python - https://github.com/jborean93/pypsrp
-- Promp Toolkit - https://github.com/prompt-toolkit/python-prompt-toolkit
+- Prompt Toolkit - https://github.com/prompt-toolkit/python-prompt-toolkit
