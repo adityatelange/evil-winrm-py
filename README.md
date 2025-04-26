@@ -23,11 +23,14 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Auto-complete remote file and directory paths.
 - Lightweight and Python-based for ease of use.
 - Keyboard Interrupt (Ctrl+C) support to terminate long-running commands gracefully.
+- Support for SSL to secure communication with the remote host.
 
-## Installation (on Linux)
+## Installation (Windows/Linux)
+
+> You may use [pipx](https://pipx.pypa.io/stable/) instead of pip to install evil-winrm-py. `pipx` is a tool to install and run Python applications in isolated environments.
 
 ```bash
-pipx install evil-winrm-py
+pip install evil-winrm-py
 ```
 
 or if you want to install with latest commit from the main branch you can do so by cloning the repository and installing it with pipx:
@@ -35,19 +38,19 @@ or if you want to install with latest commit from the main branch you can do so 
 ```bash
 git clone https://github.com/adityatelange/evil-winrm-py
 cd evil-winrm-py
-pipx install .
+pip install .
 ```
 
 ### Update
 
 ```bash
-pipx upgrade evil-winrm-py
+pip upgrade evil-winrm-py
 ```
 
 ### Uninstall
 
 ```bash
-pipx uninstall evil-winrm-py
+pip uninstall evil-winrm-py
 ```
 
 ## Usage
@@ -62,6 +65,7 @@ options:
   -p PASSWORD, --password PASSWORD
                         password
   -H HASH, --hash HASH  nthash
+  --ssl                 use ssl
   --port PORT           remote host port (default 5985)
   --version             show version
 ```
