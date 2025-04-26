@@ -2,7 +2,7 @@
 
 Evil-WinRM-Py is a Python-based tool for Windows Remote Management (WinRM) that allows users to execute commands on remote Windows machines.
 
-![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.4/assets/terminal.png)
+![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.5/assets/terminal.png)
 
 > [!NOTE]
 > This tool is designed strictly for educational, ethical use, and authorized penetration testing. Always ensure you have explicit authorization before accessing any system. Unauthorized access or misuse of this tool is both illegal and unethical.
@@ -56,7 +56,7 @@ pip uninstall evil-winrm-py
 ## Usage
 
 ```bash
-usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--port PORT] [--version]
+usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--ssl] [--port PORT] [--log] [--version]
 
 options:
   -h, --help            show this help message and exit
@@ -67,6 +67,7 @@ options:
   -H HASH, --hash HASH  nthash
   --ssl                 use ssl
   --port PORT           remote host port (default 5985)
+  --log                 log session to file
   --version             show version
 ```
 
