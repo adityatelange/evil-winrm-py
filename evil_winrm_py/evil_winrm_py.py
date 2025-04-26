@@ -267,8 +267,7 @@ def interactive_shell(
 
                 # Check for exit command
                 if command_lower == "exit":
-                    r_pool.close()
-                    break
+                    return
                 elif command_lower in ["clear", "cls"]:
                     clear()  # Clear the screen
                     continue
@@ -305,9 +304,7 @@ def interactive_shell(
                 print("\nCaught Ctrl+C. Type 'exit' or press Ctrl+D to exit.")
                 continue  # Allow user to continue or type exit
             except EOFError:
-                r_pool.close()
-                print()
-                break  # Exit on Ctrl+D
+                return  # Exit on Ctrl+D
 
 
 # --- Main Function ---
