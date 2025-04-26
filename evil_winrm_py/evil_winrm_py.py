@@ -53,11 +53,6 @@ BOLD = "\033[1m"
 
 # --- Logging Setup ---
 log = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    filename=LOG_PATH,
-)
 
 
 # --- Helper Functions ---
@@ -267,11 +262,14 @@ def interactive_shell(
 
                 # Check for exit command
                 if command_lower == "exit":
+                    log.info("Exiting interactive shell.")
                     return
                 elif command_lower in ["clear", "cls"]:
+                    log.info("Clearing the screen.")
                     clear()  # Clear the screen
                     continue
                 elif command_lower == "menu":
+                    log.info("Displaying menu.")
                     show_menu()
                     continue
                 else:
@@ -292,13 +290,17 @@ def interactive_shell(
                             for line in output[cursor:]:
                                 print(line)
                             cursor = len(output)
+                        log.info("Command execution completed.")
+                        log.info("Output: {}".format("\n".join(output)))
 
                         if ps.had_errors:
                             if ps.streams.error:
                                 for error in ps.streams.error:
                                     print(error)
+                                    log.error("Error: {}".format(error))
                     except KeyboardInterrupt:
                         if ps.state == PSInvocationState.RUNNING:
+                            log.info("Stopping command execution.")
                             ps.stop()
             except KeyboardInterrupt:
                 print("\nCaught Ctrl+C. Type 'exit' or press Ctrl+D to exit.")
@@ -309,7 +311,6 @@ def interactive_shell(
 
 # --- Main Function ---
 def main():
-    log.info("--- Evil-WinRM-Py v{} started ---".format(__version__))
     print(
         """        ▘▜      ▘             
     █▌▌▌▌▐ ▄▖▌▌▌▌▛▌▛▘▛▛▌▄▖▛▌▌▌
@@ -333,6 +334,7 @@ def main():
     parser.add_argument(
         "--port", type=int, default=5985, help="remote host port (default 5985)"
     )
+    parser.add_argument("--log", action="store_true", help="log session to file")
     parser.add_argument(
         "--version", action="version", version=__version__, help="show version"
     )
@@ -358,7 +360,20 @@ def main():
     if args.ssl and (args.port == 5985):
         args.port = 5986
 
+    if args.log:
+        # Disable all loggers except the root logger
+        for name in logging.root.manager.loggerDict:
+            if not name.startswith("evil_winrm_py"):
+                logging.getLogger(name).disabled = True
+        # Set up logging to a file
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+            filename=LOG_PATH,
+        )
+
     # --- Initialize WinRM Session ---
+    log.info("--- Evil-WinRM-Py v{} started ---".format(__version__))
     try:
         log.info("Connecting to {}:{} as {}".format(args.ip, args.port, args.user))
         print(
@@ -390,3 +405,6 @@ def main():
         print(e.__class__, e)
         log.exception("An unexpected error occurred: {}".format(e))
         sys.exit(1)
+    finally:
+        log.info("--- Evil-WinRM-Py v{} ended ---".format(__version__))
+        sys.exit(0)
