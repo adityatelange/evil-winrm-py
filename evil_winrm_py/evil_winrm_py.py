@@ -318,6 +318,7 @@ def main():
     parser.add_argument("-u", "--user", required=True, help="username")
     parser.add_argument("-p", "--password", help="password")
     parser.add_argument("-H", "--hash", help="nthash")
+    parser.add_argument("--ssl", action="store_true", help="use ssl")
     parser.add_argument(
         "--port", type=int, default=5985, help="remote host port (default 5985)"
     )
@@ -340,6 +341,9 @@ def main():
     if not args.password:
         args.password = prompt("Password: ", is_password=True)
 
+    if args.ssl and (args.port == 5985):
+        args.port = 5986
+
     # --- Initialize WinRM Session ---
     try:
         log.info("Connecting to {}:{} as {}".format(args.ip, args.port, args.user))
@@ -355,7 +359,7 @@ def main():
             auth="ntlm",
             username=args.user,
             password=args.password,
-            ssl=False,
+            ssl=args.ssl,
             cert_validation=False,
         ) as wsman:
             interactive_shell(wsman)
