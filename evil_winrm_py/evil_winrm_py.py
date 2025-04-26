@@ -251,6 +251,7 @@ def interactive_shell(
 
                 # Check for exit command
                 if command_lower == "exit":
+                    r_pool.close()
                     break
                 elif command_lower in ["clear", "cls"]:
                     # Clear the screen
