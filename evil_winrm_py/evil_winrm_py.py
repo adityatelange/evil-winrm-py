@@ -371,6 +371,8 @@ def main():
             format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
             filename=LOG_PATH,
         )
+    else:
+        log.disabled = True
 
     # --- Initialize WinRM Session ---
     log.info("--- Evil-WinRM-Py v{} started ---".format(__version__))
