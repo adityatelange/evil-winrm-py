@@ -1,6 +1,6 @@
 # evil-winrm-py
 
-Evil-WinRM-Py is a Python-based tool for Windows Remote Management (WinRM) that allows users to execute commands on remote Windows machines.
+`evil-winrm-py` is a python-based tool for executing commands on remote Windows machines using the WinRM (Windows Remote Management) protocol. It provides an interactive shell.
 
 ![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.5/assets/terminal.png)
 
@@ -27,13 +27,13 @@ I also wanted to learn more about winrm and its internals, so this project will 
 
 ## Installation (Windows/Linux)
 
-> You may use [pipx](https://pipx.pypa.io/stable/) instead of pip to install evil-winrm-py. `pipx` is a tool to install and run Python applications in isolated environments.
+> You may use [pipx](https://pipx.pypa.io/stable/) instead of pip to install evil-winrm-py. `pipx` is a tool to install and run Python applications in isolated environments, which helps prevent dependency conflicts by keeping the tool's dependencies separate from your system's Python packages.
 
 ```bash
 pip install evil-winrm-py
 ```
 
-or if you want to install with latest commit from the main branch you can do so by cloning the repository and installing it with pipx:
+or if you want to install with latest commit from the main branch you can do so by cloning the repository and installing it with `pip`/`pipx`:
 
 ```bash
 git clone https://github.com/adityatelange/evil-winrm-py
@@ -44,7 +44,7 @@ pip install .
 ### Update
 
 ```bash
-pip upgrade evil-winrm-py
+pip install --upgrade evil-winrm-py
 ```
 
 ### Uninstall
@@ -69,6 +69,12 @@ options:
   --port PORT           remote host port (default 5985)
   --log                 log session to file
   --version             show version
+```
+
+Example:
+
+```bash
+evil-winrm-py -i 192.168.1.100 -u Administrator -p P@ssw0rd --ssl
 ```
 
 ## Credits
