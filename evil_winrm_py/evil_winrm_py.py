@@ -13,6 +13,7 @@ import signal
 import sys
 from pathlib import Path
 
+from krb5._exceptions import Krb5Error
 from prompt_toolkit import PromptSession, prompt
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
@@ -24,6 +25,7 @@ from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError
 from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
 from pypsrp.wsman import WSMan, requests
+from spnego.exceptions import OperationNotAvailableError, NoCredentialError
 
 from evil_winrm_py import __version__
 
@@ -330,6 +332,20 @@ def main():
     parser.add_argument("-u", "--user", required=True, help="username")
     parser.add_argument("-p", "--password", help="password")
     parser.add_argument("-H", "--hash", help="nthash")
+    parser.add_argument(
+        "-k", "--kerberos", action="store_true", help="use kerberos authentication"
+    )
+    parser.add_argument(
+        "--no-pass", action="store_true", help="do not prompt for password"
+    )
+    parser.add_argument(
+        "--spn-prefix",
+        help="specify spn prefix",
+    )
+    parser.add_argument(
+        "--spn-hostname",
+        help="specify spn hostname",
+    )
     parser.add_argument("--uri", default="wsman", help="wsman URI (default: /wsman)")
     parser.add_argument("--ssl", action="store_true", help="use ssl")
     parser.add_argument(
@@ -342,7 +358,23 @@ def main():
 
     args = parser.parse_args()
 
+    # Set Default values
+    auth = "ntlm"  # this can be 'negotiate'
+
     # --- Run checks on provided arguments ---
+    if args.kerberos:
+        auth = "kerberos"
+        # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
+        # example: export KRB5CCNAME=/tmp/krb5cc_1000
+        # example: export KRB5_CONFIG=/etc/krb5.conf
+    elif args.spn_prefix or args.spn_hostname:
+        args.spn_prefix = args.spn_hostname = None  # Reset to None
+        print(
+            MAGENTA
+            + "[%] SPN prefix/hostname is only used with Kerberos authentication."
+            + RESET
+        )
+
     if args.hash and args.password:
         print(RED + "[-] You cannot use both password and hash." + RESET)
         sys.exit(1)
@@ -355,8 +387,12 @@ def main():
             print(RED + "[-] Invalid NTLM hash format." + RESET)
             sys.exit(1)
 
-    if not args.password:
+    if args.no_pass:
+        args.password = None
+    elif not args.password:
         args.password = prompt("Password: ", is_password=True)
+        if not args.password:
+            args.password = None
 
     if args.uri:
         if args.uri.startswith("/"):
@@ -392,12 +428,15 @@ def main():
         with WSMan(
             server=args.ip,
             port=args.port,
-            auth="ntlm",
+            auth=auth,
+            encryption="auto",
             username=args.user,
             password=args.password,
             ssl=args.ssl,
             cert_validation=False,
             path=args.uri,
+            negotiate_service=args.spn_prefix,
+            negotiate_hostname_override=args.spn_hostname,
         ) as wsman:
             interactive_shell(wsman)
     except WinRMTransportError as wte:
@@ -409,6 +448,12 @@ def main():
     except AuthenticationError as ae:
         print(RED + "[-] Authentication failed: {}".format(ae) + RESET)
         log.error("Authentication failed: {}".format(ae))
+    except Krb5Error as ke:
+        print(RED + "[-] Kerberos error: {}".format(ke) + RESET)
+        log.error("Kerberos error: {}".format(ke))
+    except (OperationNotAvailableError, NoCredentialError) as se:
+        print(RED + "[-] SpnegoError error: {}".format(se) + RESET)
+        log.error("SpnegoError error: {}".format(se))
     except Exception as e:
         print(e.__class__, e)
         log.exception("An unexpected error occurred: {}".format(e))
