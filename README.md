@@ -24,6 +24,8 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Lightweight and Python-based for ease of use.
 - Keyboard Interrupt (Ctrl+C) support to terminate long-running commands gracefully.
 - Support for SSL to secure communication with the remote host.
+- Support for Kerberos authentication with SPN (Service Principal Name) prefix and hostname options.
+- Support for custom WSMan URIs.
 
 ## Installation (Windows/Linux)
 
@@ -56,7 +58,8 @@ pip uninstall evil-winrm-py
 ## Usage
 
 ```bash
-usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--ssl] [--port PORT] [--log] [--version]
+usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [-k] [--no-pass] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--uri URI] [--ssl] [--port PORT]
+               [--log] [--version]
 
 options:
   -h, --help            show this help message and exit
@@ -65,6 +68,12 @@ options:
   -p PASSWORD, --password PASSWORD
                         password
   -H HASH, --hash HASH  nthash
+  -k, --kerberos        use kerberos authentication
+  --no-pass             do not prompt for password
+  --spn-prefix SPN_PREFIX
+                        specify spn prefix
+  --spn-hostname SPN_HOSTNAME
+                        specify spn hostname
   --uri URI             wsman URI (default: /wsman)
   --ssl                 use ssl
   --port PORT           remote host port (default 5985)
