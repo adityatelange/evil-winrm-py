@@ -2,7 +2,7 @@
 
 `evil-winrm-py` is a python-based tool for executing commands on remote Windows machines using the WinRM (Windows Remote Management) protocol. It provides an interactive shell.
 
-![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.5/assets/terminal.png)
+![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.6/assets/terminal.png)
 
 > [!NOTE]
 > This tool is designed strictly for educational, ethical use, and authorized penetration testing. Always ensure you have explicit authorization before accessing any system. Unauthorized access or misuse of this tool is both illegal and unethical.
