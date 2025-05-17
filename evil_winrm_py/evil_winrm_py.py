@@ -330,6 +330,7 @@ def main():
     parser.add_argument("-u", "--user", required=True, help="username")
     parser.add_argument("-p", "--password", help="password")
     parser.add_argument("-H", "--hash", help="nthash")
+    parser.add_argument("--uri", default="wsman", help="wsman URI (default: /wsman)")
     parser.add_argument("--ssl", action="store_true", help="use ssl")
     parser.add_argument(
         "--port", type=int, default=5985, help="remote host port (default 5985)"
@@ -356,6 +357,10 @@ def main():
 
     if not args.password:
         args.password = prompt("Password: ", is_password=True)
+
+    if args.uri:
+        if args.uri.startswith("/"):
+            args.uri = args.uri.lstrip("/")
 
     if args.ssl and (args.port == 5985):
         args.port = 5986
@@ -392,6 +397,7 @@ def main():
             password=args.password,
             ssl=args.ssl,
             cert_validation=False,
+            path=args.uri,
         ) as wsman:
             interactive_shell(wsman)
     except WinRMTransportError as wte:

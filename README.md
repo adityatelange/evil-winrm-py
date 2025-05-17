@@ -65,6 +65,7 @@ options:
   -p PASSWORD, --password PASSWORD
                         password
   -H HASH, --hash HASH  nthash
+  --uri URI             wsman URI (default: /wsman)
   --ssl                 use ssl
   --port PORT           remote host port (default 5985)
   --log                 log session to file
