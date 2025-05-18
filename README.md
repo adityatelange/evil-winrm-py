@@ -29,10 +29,20 @@ I also wanted to learn more about winrm and its internals, so this project will 
 
 ## Installation (Windows/Linux)
 
+#### Installation of Kerberos prerequisites on Linux
+
+```bash
+sudo apt install gcc python3-dev libkrb5-dev
+# Optional: krb5-user
+```
+
+### Install `evil-winrm-py`
+
 > You may use [pipx](https://pipx.pypa.io/stable/) instead of pip to install evil-winrm-py. `pipx` is a tool to install and run Python applications in isolated environments, which helps prevent dependency conflicts by keeping the tool's dependencies separate from your system's Python packages.
 
 ```bash
 pip install evil-winrm-py
+pip install evil-winrm-py[kerberos] # for kerberos support on Linux
 ```
 
 or if you want to install with latest commit from the main branch you can do so by cloning the repository and installing it with `pip`/`pipx`:
