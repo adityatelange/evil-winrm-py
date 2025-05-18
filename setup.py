@@ -26,23 +26,15 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     install_requires=[
-        "certifi==2025.4.26",
-        "cffi==1.17.1",
-        "charset-normalizer==3.4.2",
-        "cryptography==44.0.3",
-        "decorator==5.2.1",
-        "gssapi==1.9.0",
-        "idna==3.10",
-        "krb5==0.7.1",
-        "prompt_toolkit==3.0.51",
-        "pycparser==2.22",
-        "pypsrp==0.8.1",
-        "pyspnego==0.11.2",
-        "requests==2.32.3",
         "setuptools==78.1.0",
-        "urllib3==2.4.0",
-        "wcwidth==0.2.13",
+        "pypsrp==0.8.1",
+        "prompt_toolkit==3.0.51",
     ],
+    extras_require={
+        "kerberos": [
+            "pypsrp[kerberos]==0.8.1",
+        ]
+    },
     python_requires=">=3.6",
     entry_points={
         "console_scripts": ["evil-winrm-py = evil_winrm_py.evil_winrm_py:main"]
