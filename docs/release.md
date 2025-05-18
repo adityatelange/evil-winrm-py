@@ -22,17 +22,17 @@ __version__ = "X.Y.Z" # update this to the new version
 python3 -m build
 ```
 
+# Sceenshot
+
+Creating screenshots for the README using the [freeze](https://github.com/charmbracelet/freeze) tool.
+
+```bash
+freeze --execute "evil-winrm-py -h" -o assets/terminal.png --padding 5 --wrap 120 --border.radius 4
+```
+
 ## Upload
 
 ```bash
 python3 -m twine upload dist/evil_winrm_py-$VERSION*
 # example: python3 -m twine upload dist/evil_winrm_py-0.0.2*
-```
-
-# Miscellaneous
-
-Creating screenshots for the README using the [freeze](https://github.com/charmbracelet/freeze) tool.
-
-```bash
-freeze --execute "evil-winrm-py -h" -o assets/terminal.png --padding 2
 ```
