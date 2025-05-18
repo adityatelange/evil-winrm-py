@@ -13,7 +13,6 @@ import signal
 import sys
 from pathlib import Path
 
-from krb5._exceptions import Krb5Error
 from prompt_toolkit import PromptSession, prompt
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
@@ -26,6 +25,19 @@ from pypsrp.exceptions import AuthenticationError, WinRMTransportError
 from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
 from pypsrp.wsman import WSMan, requests
 from spnego.exceptions import OperationNotAvailableError, NoCredentialError
+
+# check if kerberos is installed
+try:
+    from krb5._exceptions import Krb5Error
+
+    is_kerb_available = True
+except ImportError:
+    is_kerb_available = False
+
+    # If kerberos is not available, define a dummy exception
+    class Krb5Error(Exception):
+        pass
+
 
 from evil_winrm_py import __version__
 
@@ -333,19 +345,20 @@ def main():
     parser.add_argument("-p", "--password", help="password")
     parser.add_argument("-H", "--hash", help="nthash")
     parser.add_argument(
-        "-k", "--kerberos", action="store_true", help="use kerberos authentication"
-    )
-    parser.add_argument(
         "--no-pass", action="store_true", help="do not prompt for password"
     )
-    parser.add_argument(
-        "--spn-prefix",
-        help="specify spn prefix",
-    )
-    parser.add_argument(
-        "--spn-hostname",
-        help="specify spn hostname",
-    )
+    if is_kerb_available:
+        parser.add_argument(
+            "-k", "--kerberos", action="store_true", help="use kerberos authentication"
+        )
+        parser.add_argument(
+            "--spn-prefix",
+            help="specify spn prefix",
+        )
+        parser.add_argument(
+            "--spn-hostname",
+            help="specify spn hostname",
+        )
     parser.add_argument("--uri", default="wsman", help="wsman URI (default: /wsman)")
     parser.add_argument("--ssl", action="store_true", help="use ssl")
     parser.add_argument(
@@ -362,18 +375,21 @@ def main():
     auth = "ntlm"  # this can be 'negotiate'
 
     # --- Run checks on provided arguments ---
-    if args.kerberos:
-        auth = "kerberos"
-        # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
-        # example: export KRB5CCNAME=/tmp/krb5cc_1000
-        # example: export KRB5_CONFIG=/etc/krb5.conf
-    elif args.spn_prefix or args.spn_hostname:
-        args.spn_prefix = args.spn_hostname = None  # Reset to None
-        print(
-            MAGENTA
-            + "[%] SPN prefix/hostname is only used with Kerberos authentication."
-            + RESET
-        )
+    if is_kerb_available:
+        if args.kerberos:
+            auth = "kerberos"
+            # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
+            # example: export KRB5CCNAME=/tmp/krb5cc_1000
+            # example: export KRB5_CONFIG=/etc/krb5.conf
+        elif args.spn_prefix or args.spn_hostname:
+            args.spn_prefix = args.spn_hostname = None  # Reset to None
+            print(
+                MAGENTA
+                + "[%] SPN prefix/hostname is only used with Kerberos authentication."
+                + RESET
+            )
+    else:
+        args.spn_prefix = args.spn_hostname = None
 
     if args.hash and args.password:
         print(RED + "[-] You cannot use both password and hash." + RESET)
