@@ -38,7 +38,7 @@ sudo apt install gcc python3-dev libkrb5-dev
 
 ### Install `evil-winrm-py`
 
-> You may use [pipx](https://pipx.pypa.io/stable/) instead of pip to install evil-winrm-py. `pipx` is a tool to install and run Python applications in isolated environments, which helps prevent dependency conflicts by keeping the tool's dependencies separate from your system's Python packages.
+> You may use [pipx](https://pipx.pypa.io/stable/) or [uv](https://docs.astral.sh/uv/) instead of pip to install evil-winrm-py. `pipx`/`uv` is a tool to install and run Python applications in isolated environments, which helps prevent dependency conflicts by keeping the tool's dependencies separate from your system's Python packages.
 
 ```bash
 pip install evil-winrm-py
