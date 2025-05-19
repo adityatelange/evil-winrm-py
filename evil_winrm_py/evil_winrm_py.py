@@ -359,6 +359,14 @@ def main():
             "--spn-hostname",
             help="specify spn hostname",
         )
+    parser.add_argument(
+        "--priv-key-pem",
+        help="local path to private key PEM file",
+    )
+    parser.add_argument(
+        "--cert-pem",
+        help="local path to certificate PEM file",
+    )
     parser.add_argument("--uri", default="wsman", help="wsman URI (default: /wsman)")
     parser.add_argument("--ssl", action="store_true", help="use ssl")
     parser.add_argument(
@@ -373,6 +381,7 @@ def main():
 
     # Set Default values
     auth = "ntlm"  # this can be 'negotiate'
+    encryption = "auto"
 
     # --- Run checks on provided arguments ---
     if is_kerb_available:
@@ -390,6 +399,19 @@ def main():
             )
     else:
         args.spn_prefix = args.spn_hostname = None
+
+    if args.cert_pem or args.priv_key_pem:
+        auth = "certificate"
+        encryption = "never"
+        args.ssl = True
+        args.no_pass = True
+        if not args.cert_pem or not args.priv_key_pem:
+            print(
+                RED
+                + "[-] Both cert.pem and priv-key.pem must be provided for certificate authentication."
+                + RESET
+            )
+            sys.exit(1)
 
     if args.hash and args.password:
         print(RED + "[-] You cannot use both password and hash." + RESET)
@@ -445,7 +467,7 @@ def main():
             server=args.ip,
             port=args.port,
             auth=auth,
-            encryption="auto",
+            encryption=encryption,
             username=args.user,
             password=args.password,
             ssl=args.ssl,
@@ -453,6 +475,8 @@ def main():
             path=args.uri,
             negotiate_service=args.spn_prefix,
             negotiate_hostname_override=args.spn_hostname,
+            certificate_key_pem=args.priv_key_pem,
+            certificate_pem=args.cert_pem,
         ) as wsman:
             interactive_shell(wsman)
     except WinRMTransportError as wte:
