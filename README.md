@@ -68,8 +68,8 @@ pip uninstall evil-winrm-py
 ## Usage
 
 ```bash
-usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [-k] [--no-pass] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--uri URI] [--ssl] [--port PORT]
-               [--log] [--version]
+usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--priv-key-pem PRIV_KEY_PEM]
+               [--cert-pem CERT_PEM] [--uri URI] [--ssl] [--port PORT] [--log] [--version]
 
 options:
   -h, --help            show this help message and exit
@@ -78,12 +78,15 @@ options:
   -p PASSWORD, --password PASSWORD
                         password
   -H HASH, --hash HASH  nthash
-  -k, --kerberos        use kerberos authentication
   --no-pass             do not prompt for password
+  -k, --kerberos        use kerberos authentication
   --spn-prefix SPN_PREFIX
                         specify spn prefix
   --spn-hostname SPN_HOSTNAME
                         specify spn hostname
+  --priv-key-pem PRIV_KEY_PEM
+                        local path to private key PEM file
+  --cert-pem CERT_PEM   local path to certificate PEM file
   --uri URI             wsman URI (default: /wsman)
   --ssl                 use ssl
   --port PORT           remote host port (default 5985)
