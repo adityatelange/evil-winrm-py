@@ -26,3 +26,28 @@ Enable Auth
 ```powershell
 Set-Item -Path WSMan:\localhost\Service\Auth\Certificate -Value $true
 ```
+## Configure WinRM HTTPS with self-signed certificate
+
+```powershell
+# https://gist.github.com/gregjhogan/dbe0bfa277d450c049e0bbdac6142eed
+$cert = New-SelfSignedCertificate -CertstoreLocation Cert:\LocalMachine\My -DnsName $env:COMPUTERNAME
+Enable-PSRemoting -SkipNetworkProfileCheck -Force
+New-Item -Path WSMan:\LocalHost\Listener -Transport HTTPS -Address * -CertificateThumbPrint $cert.Thumbprint –Force
+
+New-NetFirewallRule -DisplayName "Windows Remote Management (HTTPS-In)" -Name "Windows Remote Management (HTTPS-In)" -Profile Any -LocalPort 5986 -Protocol TCP
+```
+
+Reference: https://learn.microsoft.com/en-us/windows/win32/winrm/installation-and-configuration-for-windows-remote-management
+
+- **Get the current WinRM configuration**
+
+```powershell
+winrm get winrm/config
+```
+
+- **Enumerate WinRM listeners**
+
+```powershell
+winrm enumerate winrm/config/listener
+```
+
