@@ -10,7 +10,7 @@ with io.open(path.join(pwd, "README.md"), encoding="utf-8") as readme:
 setup(
     name="evil-winrm-py",
     version=__import__("evil_winrm_py").__version__,
-    description="Rewrite of popular tool evil-winrm in python",
+    description="Execute commands interactively on remote Windows machines using the WinRM protocol",
     long_description=desc,
     long_description_content_type="text/markdown",
     author="adityatelange",
