@@ -8,3 +8,21 @@ Read more:
 
 - https://learn.microsoft.com/en-us/windows/win32/winrm/windows-remote-management-glossary#:~:text=A%20negotiated%2C%20single,Windows%20Integrated%20Authentication
 - https://learn.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections#negotiate-authentication
+
+## WinRM - Types of Authentication
+
+1. Basic Authentication
+2. Digest Authentication
+3. Kerberos Authentication
+4. Negotiate Authentication
+5. NTLM Authentication
+6. Certificate Authentication
+7. CredSSP Authentication
+
+Reference: https://learn.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections
+
+Enable Auth
+
+```powershell
+Set-Item -Path WSMan:\localhost\Service\Auth\Certificate -Value $true
+```
