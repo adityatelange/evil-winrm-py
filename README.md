@@ -16,16 +16,18 @@ I also wanted to learn more about winrm and its internals, so this project will 
 ## Features
 
 - Execute commands on remote Windows machines via an interactive shell.
+- Support for NTLM authentication.
+- Support for Pass-the-Hash authentication.
+- Support for Certificate authentication.
+- Support for Kerberos authentication with SPN (Service Principal Name) prefix and hostname options.
+- Support for SSL to secure communication with the remote host.
+- Support for custom WSMan URIs.
+- Auto-complete remote file and directory paths
 - Enable logging and debugging for better traceability.
 - Navigate command history using up/down arrow keys.
-- Display colorized output for improved readability.
-- Support for Pass-the-Hash authentication.
-- Auto-complete remote file and directory paths.
+- Display colorized output for improved readability..
 - Lightweight and Python-based for ease of use.
 - Keyboard Interrupt (Ctrl+C) support to terminate long-running commands gracefully.
-- Support for SSL to secure communication with the remote host.
-- Support for Kerberos authentication with SPN (Service Principal Name) prefix and hostname options.
-- Support for custom WSMan URIs.
 
 ## Installation (Windows/Linux)
 
