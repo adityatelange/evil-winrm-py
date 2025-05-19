@@ -35,7 +35,7 @@ setup(
             "pypsrp[kerberos]==0.8.1",
         ]
     },
-    python_requires=">=3.6",
+    python_requires=">=3.9",
     entry_points={
         "console_scripts": ["evil-winrm-py = evil_winrm_py.evil_winrm_py:main"]
     },
