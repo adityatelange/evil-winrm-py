@@ -11,6 +11,6 @@ pycparser==2.22
 pypsrp==0.8.1
 pyspnego==0.11.2
 requests==2.32.3
-setuptools==78.1.0
+setuptools==78.1.1
 urllib3==2.4.0
 wcwidth==0.2.13
