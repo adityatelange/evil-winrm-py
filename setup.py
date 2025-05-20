@@ -26,7 +26,6 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     install_requires=[
-        "setuptools==78.1.0",
         "pypsrp==0.8.1",
         "prompt_toolkit==3.0.51",
     ],
