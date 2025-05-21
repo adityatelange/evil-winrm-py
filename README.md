@@ -47,7 +47,7 @@ pip install evil-winrm-py
 pip install evil-winrm-py[kerberos] # for kerberos support on Linux
 ```
 
-or if you want to install with latest commit from the main branch you can do so by cloning the repository and installing it with `pip`/`pipx`:
+or if you want to install with latest commit from the main branch you can do so by cloning the repository and installing it with `pip`/`pipx`/`uv`:
 
 ```bash
 git clone https://github.com/adityatelange/evil-winrm-py
@@ -70,9 +70,8 @@ pip uninstall evil-winrm-py
 ## Usage
 
 ```bash
-usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--priv-key-pem PRIV_KEY_PEM]
-               [--cert-pem CERT_PEM] [--uri URI] [--ssl] [--port PORT] [--log] [--version]
-
+usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI] [--ssl] [--port PORT] [--log]
+                     [--no-colors] [--version]
 options:
   -h, --help            show this help message and exit
   -i IP, --ip IP        remote host IP or hostname
@@ -93,6 +92,7 @@ options:
   --ssl                 use ssl
   --port PORT           remote host port (default 5985)
   --log                 log session to file
+  --no-colors           disable colors
   --version             show version
 ```
 
