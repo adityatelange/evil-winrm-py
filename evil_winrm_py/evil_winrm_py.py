@@ -373,6 +373,7 @@ def main():
         "--port", type=int, default=5985, help="remote host port (default 5985)"
     )
     parser.add_argument("--log", action="store_true", help="log session to file")
+    parser.add_argument("--no-colors", action="store_true", help="disable colors")
     parser.add_argument(
         "--version", action="version", version=__version__, help="show version"
     )
@@ -384,6 +385,10 @@ def main():
     encryption = "auto"
 
     # --- Run checks on provided arguments ---
+    if args.no_colors:
+        global RESET, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, BOLD
+        RESET = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = BOLD = ""
+
     if is_kerb_available:
         if args.kerberos:
             auth = "kerberos"
