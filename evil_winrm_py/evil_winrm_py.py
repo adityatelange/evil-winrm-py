@@ -450,6 +450,7 @@ def main():
             format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
             filename=LOG_PATH,
         )
+        print(BLUE + "[*] Logging session to {}".format(LOG_PATH) + RESET)
     else:
         log.disabled = True
 
