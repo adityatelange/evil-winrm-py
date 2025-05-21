@@ -14,7 +14,6 @@ import sys
 from pathlib import Path
 
 from prompt_toolkit import PromptSession, prompt
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text import ANSI
@@ -24,7 +23,7 @@ from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError
 from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
 from pypsrp.wsman import WSMan, requests
-from spnego.exceptions import OperationNotAvailableError, NoCredentialError
+from spnego.exceptions import NoCredentialError, OperationNotAvailableError
 
 # check if kerberos is installed
 try:
