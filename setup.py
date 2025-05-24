@@ -39,4 +39,7 @@ setup(
     entry_points={
         "console_scripts": ["evil-winrm-py = evil_winrm_py.evil_winrm_py:main"]
     },
+    package_data={
+        "evil_winrm_py": ["_ps/*.ps1"],
+    },
 )
