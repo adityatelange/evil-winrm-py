@@ -154,6 +154,38 @@ def get_directory_and_partial_name(text: str) -> tuple[str, str]:
     return directory_prefix, partial_name
 
 
+def get_remote_path_suggestions(
+    r_pool: RunspacePool,
+    directory_prefix: str,
+    partial_name: str,
+    dirs_only: bool = False,
+) -> list[str]:
+    """
+    Returns a list of remote path suggestions based on the current directory
+    and the partial name entered by the user.
+    """
+
+    exp = "FullName"
+    attrs = ""
+    if not re.match(r"^[a-zA-Z]:", directory_prefix):
+        # If the path doesn't start with a drive letter, prepend the current directory
+        pwd, streams, had_errors = run_ps(
+            r_pool, "$pwd.Path"
+        )  # Get current working directory
+        directory_prefix = f"{pwd}\\{directory_prefix}"
+        exp = "Name"
+
+    if dirs_only:
+        attrs = "-Attributes Directory"
+
+    command = f'Get-ChildItem -LiteralPath "{directory_prefix}" -Filter "{partial_name}*" {attrs} -Fo | select -Exp {exp}'
+    ps = PowerShell(r_pool)
+    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+    ps.add_cmdlet("Out-String").add_parameter("Stream")
+    ps.invoke()
+    return ps.output
+
+
 class RemotePathCompleter(Completer):
     """
     Completer for remote paths in the interactive shell.
@@ -209,38 +241,6 @@ class RemotePathCompleter(Completer):
                     0,
                     display=path,
                 )
-
-
-def get_remote_path_suggestions(
-    r_pool: RunspacePool,
-    directory_prefix: str,
-    partial_name: str,
-    dirs_only: bool = False,
-) -> list[str]:
-    """
-    Returns a list of remote path suggestions based on the current directory
-    and the partial name entered by the user.
-    """
-
-    exp = "FullName"
-    attrs = ""
-    if not re.match(r"^[a-zA-Z]:", directory_prefix):
-        # If the path doesn't start with a drive letter, prepend the current directory
-        pwd, streams, had_errors = run_ps(
-            r_pool, "$pwd.Path"
-        )  # Get current working directory
-        directory_prefix = f"{pwd}\\{directory_prefix}"
-        exp = "Name"
-
-    if dirs_only:
-        attrs = "-Attributes Directory"
-
-    command = f'Get-ChildItem -LiteralPath "{directory_prefix}" -Filter "{partial_name}*" {attrs} -Fo | select -Exp {exp}'
-    ps = PowerShell(r_pool)
-    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
-    ps.add_cmdlet("Out-String").add_parameter("Stream")
-    ps.invoke()
-    return ps.output
 
 
 def interactive_shell(
