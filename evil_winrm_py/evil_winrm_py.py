@@ -7,10 +7,16 @@ https://github.com/adityatelange/evil-winrm-py
 """
 
 import argparse
+import base64
+import hashlib
+import json
 import logging
 import re
+import shutil
 import signal
 import sys
+import time
+from importlib import resources
 from pathlib import Path
 
 from prompt_toolkit import PromptSession, prompt
@@ -20,10 +26,11 @@ from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.shortcuts import clear
 from pypsrp.complex_objects import PSInvocationState
-from pypsrp.exceptions import AuthenticationError, WinRMTransportError
+from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
 from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
 from pypsrp.wsman import WSMan, requests
 from spnego.exceptions import NoCredentialError, OperationNotAvailableError
+from tqdm import tqdm
 
 # check if kerberos is installed
 try:
@@ -243,6 +250,101 @@ class RemotePathCompleter(Completer):
                 )
 
 
+def get_ps_script(script_name: str) -> str:
+    """
+    Returns the content of a PowerShell script from the package resources.
+    """
+    try:
+        with resources.path("evil_winrm_py._ps", script_name) as script_path:
+            return script_path.read_text()
+    except FileNotFoundError:
+        print(RED + f"[-] Script {script_name} not found." + RESET)
+        log.error(f"Script {script_name} not found.")
+        return ""
+
+
+def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> None:
+    ps = PowerShell(r_pool)
+    script = get_ps_script("fetch.ps1")
+    ps.add_script(script)
+    ps.add_parameter("FilePath", remote_path)
+    ps.begin_invoke()
+
+    ts = int(time.time())
+    tmp_file_path = f"/tmp/evil-winrm-py.file_{ts}.tmp"
+
+    try:
+        # Create a temporary file to store the downloaded data
+        with open(tmp_file_path, "ab+") as bin:
+            cursor = 0
+            metadata = {}
+            while ps.state == PSInvocationState.RUNNING:
+                with DelayedKeyboardInterrupt():
+                    ps.poll_invoke()
+                output = ps.output
+                if cursor == 0:
+                    # The first line contains metadata
+                    metadata = json.loads(output[0])
+                    pbar = tqdm(
+                        total=metadata["FileSize"],
+                        unit="B",
+                        unit_scale=True,
+                        unit_divisor=1024,
+                        desc=f"Downloading {remote_path}",
+                        dynamic_ncols=True,
+                        mininterval=0.1,
+                    )
+                for line in output[cursor:]:
+                    line = json.loads(line)
+                    if line["Type"] == "Chunk":
+                        Base64Data = line["Base64Data"]
+                        chunk = base64.b64decode(Base64Data)
+                        bin.write(chunk)
+                        pbar.update(metadata["ChunkSize"])
+                cursor = len(output)
+            pbar.close()
+            bin.close()
+
+        if ps.had_errors:
+            if ps.streams.error:
+                for error in ps.streams.error:
+                    print(error)
+
+    except KeyboardInterrupt:
+        if "pbar" in locals() and pbar:
+            pbar.leave = (
+                False  # Make the progress bar disappear on close after interrupt
+            )
+            pbar.close()
+        Path(tmp_file_path).unlink(missing_ok=True)
+        if ps.state == PSInvocationState.RUNNING:
+            log.info("Stopping command execution.")
+            ps.stop()
+        return
+
+    # Verify the downloaded file's hash
+    hexdigest = hashlib.md5(open(tmp_file_path, "rb").read()).hexdigest()
+    if metadata["FileHash"].lower() == hexdigest:
+        # If the hash matches, rename the temporary file to the final name
+        tmp_file_path = Path(tmp_file_path)
+        try:
+            shutil.move(tmp_file_path, local_path)
+        except Exception as e:
+            print(RED + f"[-] Error saving file: {e}" + RESET)
+            log.error(f"Error saving file: {e}")
+            return
+        print(
+            GREEN
+            + "[+] File downloaded successfully and saved as: "
+            + local_path
+            + RESET
+        )
+        log.info("File downloaded successfully and saved as: {}".format(local_path))
+    else:
+        print(RED + "[-] File hash mismatch. Downloaded file may be corrupted." + RESET)
+        log.error("File hash mismatch. Downloaded file may be corrupted.")
+
+
 def interactive_shell(
     wsman: WSMan, configuration_name: str = DEFAULT_CONFIGURATION_NAME
 ) -> None:
@@ -284,6 +386,34 @@ def interactive_shell(
                 elif command_lower == "menu":
                     log.info("Displaying menu.")
                     show_menu()
+                    continue
+                elif command_lower.startswith("download"):
+                    # For now, assume there are no quotes and split by spaces #TODO
+                    command_parts = command.split(maxsplit=2)
+                    if len(command_parts) < 3:
+                        print(
+                            RED
+                            + "[-] Usage: download <remote_path> <local_path>"
+                            + RESET
+                        )
+                        continue
+                    remote_path = command_parts[1]
+                    local_path = command_parts[2]
+
+                    if not re.match(r"^[a-zA-Z]:", remote_path):
+                        # If the path doesn't start with a drive letter, prepend the current directory
+                        pwd, streams, had_errors = run_ps(r_pool, "$pwd.Path")
+                        # Ensure the remote path is absolute
+                        remote_path = f"{pwd}\\{remote_path}"
+
+                    file_name = remote_path.split("\\")[-1]
+
+                    if Path(local_path).is_dir() or local_path.endswith("/"):
+                        local_path = Path(local_path).resolve().joinpath(file_name)
+                    else:
+                        local_path = Path(local_path).resolve()
+
+                    download_file(r_pool, remote_path, str(local_path))
                     continue
                 else:
                     try:
