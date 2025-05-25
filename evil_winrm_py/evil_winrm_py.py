@@ -11,10 +11,12 @@ import base64
 import hashlib
 import json
 import logging
+import os
 import re
 import shutil
 import signal
 import sys
+import tempfile
 import time
 from importlib import resources
 from pathlib import Path
@@ -310,7 +312,7 @@ def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> No
     ps.begin_invoke()
 
     ts = int(time.time())
-    tmp_file_path = f"/tmp/evil-winrm-py.file_{ts}.tmp"
+    tmp_file_path = Path(tempfile.gettempdir()) / f"evil-winrm-py.file_{ts}.tmp"
 
     try:
         # Create a temporary file to store the downloaded data
@@ -446,7 +448,7 @@ def interactive_shell(
 
                     file_name = remote_path.split("\\")[-1]
 
-                    if Path(local_path).is_dir() or local_path.endswith("/"):
+                    if Path(local_path).is_dir() or local_path.endswith(os.sep):
                         local_path = Path(local_path).resolve().joinpath(file_name)
                     else:
                         local_path = Path(local_path).resolve()
