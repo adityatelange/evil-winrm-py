@@ -26,7 +26,8 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Support for Kerberos authentication with SPN (Service Principal Name) prefix and hostname options.
 - Support for SSL to secure communication with the remote host.
 - Support for custom WSMan URIs.
-- Auto-complete remote file and directory paths
+- Download files from the remote host to the local machine.
+- Auto-complete remote file and directory paths.
 - Enable logging and debugging for better traceability.
 - Navigate command history using up/down arrow keys.
 - Display colorized output for improved readability..
