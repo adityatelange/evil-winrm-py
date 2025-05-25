@@ -111,3 +111,5 @@ evil-winrm-py -i 192.168.1.100 -u Administrator -p P@ssw0rd --ssl
 - Original evil-winrm project - https://github.com/Hackplayers/evil-winrm
 - PowerShell Remoting Protocol for Python - https://github.com/jborean93/pypsrp
 - Prompt Toolkit - https://github.com/prompt-toolkit/python-prompt-toolkit
+- tqdm - https://github.com/tqdm/tqdm
+- Thanks to [Github Coplilot](https://github.com/features/copilot) and [Google Gemini](https://gemini.google.com/app) for code suggestions and improvements.
