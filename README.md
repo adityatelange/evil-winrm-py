@@ -6,7 +6,7 @@
 
 `evil-winrm-py` is a python-based tool for executing commands on remote Windows machines using the WinRM (Windows Remote Management) protocol. It provides an interactive shell.
 
-![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.8/assets/terminal.png)
+![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.9/assets/terminal.png)
 
 > [!NOTE]
 > This tool is designed strictly for educational, ethical use, and authorized penetration testing. Always ensure you have explicit authorization before accessing any system. Unauthorized access or misuse of this tool is both illegal and unethical.
@@ -75,8 +75,9 @@ pip uninstall evil-winrm-py
 ## Usage
 
 ```bash
-usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI] [--ssl] [--port PORT] [--log]
-                     [--no-colors] [--version]
+usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--priv-key-pem PRIV_KEY_PEM]
+                     [--cert-pem CERT_PEM] [--uri URI] [--ssl] [--port PORT] [--log] [--no-colors] [--version]
+
 options:
   -h, --help            show this help message and exit
   -i IP, --ip IP        remote host IP or hostname
