@@ -144,20 +144,16 @@ def get_directory_and_partial_name(text: str) -> tuple[str, str]:
     """
     Parses the input text to find the directory prefix and the partial name.
     """
-    if not re.match(r"^[a-zA-Z]:", text):
+    # Find the last unquoted slash or backslash
+    last_sep_index = text.rfind("\\")
+    if last_sep_index == -1:
+        # No separator found, the whole text is the partial name in the current directory
         directory_prefix = ""
         partial_name = text
     else:
-        # Find the last unquoted slash or backslash
-        last_sep_index = text.rfind("\\")
-        if last_sep_index == -1:
-            # No separator found, the whole text is the partial name in the current directory
-            directory_prefix = ""
-            partial_name = text
-        else:
-            split_at = last_sep_index + 1
-            directory_prefix = text[:split_at]
-            partial_name = text[split_at:]
+        split_at = last_sep_index + 1
+        directory_prefix = text[:split_at]
+        partial_name = text[split_at:]
     return directory_prefix, partial_name
 
 
@@ -193,61 +189,94 @@ def get_remote_path_suggestions(
     return ps.output
 
 
-class RemotePathCompleter(Completer):
+class CommandPathCompleter(Completer):
     """
-    Completer for remote paths in the interactive shell.
-    It provides suggestions based on the current working directory and the
-    partial name entered by the user.
+    Completer for command paths in the interactive shell.
+    This completer suggests command names based on the user's input.
     """
 
     def __init__(self, r_pool: RunspacePool):
         self.r_pool = r_pool
 
     def get_completions(self, document: Document, complete_event):
-        dirs_only = False
-        word_to_complete = ""
-        text_before_cursor = document.text_before_cursor
+        dirs_only = False  # Whether to suggest only directories
+        text_before_cursor = document.text_before_cursor.lstrip()
         tokens = text_before_cursor.split(maxsplit=1)
 
+        if not tokens:  # Empty input, suggest all commands
+            for cmd_sugg in MENU_COMMANDS:
+                yield Completion(cmd_sugg, start_position=0, display=cmd_sugg)
+            return
+
+        command_typed_part = tokens[0]
+
+        # Case 1: Completing the command name itself
+        # There's only one token and no trailing space.
+        if len(tokens) == 1 and not text_before_cursor.endswith(" "):
+            # User is typing the command, -> "downl"
+            for cmd_sugg in MENU_COMMANDS:
+                if cmd_sugg.startswith(command_typed_part):
+                    yield Completion(
+                        cmd_sugg,  # Full suggested command
+                        start_position=-len(
+                            command_typed_part
+                        ),  # Replace the typed part
+                        display=cmd_sugg,
+                    )
+            return
+
+        # Case 2: Completing a path argument
+        #   a) There are two tokens (command + start of argument) -> "download C:\Pr"
+        #   b) There's one token & a trailing space (command + space), -> "download "
+
+        path_typed_segment = ""  # What the user has typed for the current path argument
         if len(tokens) == 2:
-            word_to_complete = tokens[1]
-            directory_prefix, partial_name = get_directory_and_partial_name(
-                word_to_complete
-            )
-            suggestions = get_remote_path_suggestions(
-                self.r_pool, directory_prefix, partial_name
-            )
-        elif (len(tokens) == 1) and text_before_cursor.endswith(" "):
-            # Check if the command is 'cd' to suggest directories only
-            if tokens[0] == "cd":
-                dirs_only = True
-            directory_prefix, partial_name = get_directory_and_partial_name(
-                word_to_complete
-            )
-            suggestions = get_remote_path_suggestions(
-                self.r_pool, directory_prefix, partial_name, dirs_only
-            )
-        else:
-            word_to_complete = text_before_cursor
-            suggestions = MENU_COMMANDS
+            path_typed_segment = tokens[1]
+        # If len(tokens) == 1 and text_before_cursor.endswith(" "),
+        # path_typed_segment remains "" (correct for completing a new, empty argument).
 
-        # Yield completions from the suggestions
-        for path in suggestions:
-            if path.startswith(word_to_complete):
-                text_to_insert = path[
-                    len(word_to_complete) :
-                ]  # Use original path for insertion
-                text_to_insert = (
-                    f'"{text_to_insert}"'
-                    if text_to_insert.find(" ") != -1
-                    else text_to_insert
-                )
+        actual_command_name = command_typed_part.strip().lower()
 
-                yield Completion(
-                    text_to_insert,
-                    0,
-                    display=path,
-                )
+        # Unquote the typed quotes
+        path_for_query = path_typed_segment.strip('"')
+
+        if actual_command_name == "cd":
+            dirs_only = True
+
+        directory_prefix, partial_name = get_directory_and_partial_name(path_for_query)
+
+        remote_suggestions = get_remote_path_suggestions(
+            self.r_pool, directory_prefix, partial_name, dirs_only
+        )
+
+        for sugg_path in remote_suggestions:
+            # sugg_path is the clean suggested path string from PowerShell
+            # "C:\Program Files" or "My Document.docx"
+
+            # path_typed_segment is what the user typed for this path argument
+            # "C:\Pr", or "My D", or "" (if completing after a space)
+
+            # If the path doesn't start with a drive letter, prepend the directory_prefix
+            if (
+                not re.match(r"^[a-zA-Z]:", directory_prefix)
+                and directory_prefix
+                and directory_prefix.endswith("\\")
+            ):
+                sugg_path = f"{directory_prefix}{sugg_path}"
+
+            text_to_insert_in_prompt = sugg_path
+
+            if " " in sugg_path:  # If the suggestion itself contains a space
+                # Enclose the entire suggested path in quotes
+                text_to_insert_in_prompt = f'"{sugg_path}"'
+
+            yield Completion(
+                text_to_insert_in_prompt,  # The text to insert (possibly quoted)
+                start_position=-len(
+                    path_typed_segment
+                ),  # Replace the segment typed by the user
+                display=sugg_path,  # Show the clean (unquoted) path in the completion menu
+            )
 
 
 def get_ps_script(script_name: str) -> str:
@@ -261,6 +290,16 @@ def get_ps_script(script_name: str) -> str:
         print(RED + f"[-] Script {script_name} not found." + RESET)
         log.error(f"Script {script_name} not found.")
         return ""
+
+
+def quoted_command_split(command: str) -> list[str]:
+    """
+    Splits a command string into parts, respecting quoted strings.
+    This is useful for handling paths with spaces or special characters.
+    """
+    pattern = r'"([^"]+)"|(\S+)'
+    matches = re.findall(pattern, command)
+    return [m[0] or m[1] for m in matches if m[0] or m[1]]
 
 
 def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> None:
@@ -358,7 +397,7 @@ def interactive_shell(
     prompt_session = PromptSession(history=prompt_history)
 
     with wsman, RunspacePool(wsman, configuration_name=configuration_name) as r_pool:
-        completer = RemotePathCompleter(r_pool)
+        completer = CommandPathCompleter(r_pool)
 
         while True:
             try:
@@ -388,8 +427,7 @@ def interactive_shell(
                     show_menu()
                     continue
                 elif command_lower.startswith("download"):
-                    # For now, assume there are no quotes and split by spaces #TODO
-                    command_parts = command.split(maxsplit=2)
+                    command_parts = quoted_command_split(command)
                     if len(command_parts) < 3:
                         print(
                             RED
