@@ -8,7 +8,7 @@ param (
 )
 
 # --- Configuration ---
-$bufferSize = 4096 # Read in 4KB chunks
+$bufferSize = 65536 # Read in 64 KB chunks
 
 # --- Variables for disposal ---
 $fileStream = $null # Initialize as null to handle disposal
