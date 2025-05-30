@@ -342,6 +342,10 @@ def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> No
                         chunk = base64.b64decode(Base64Data)
                         bin.write(chunk)
                         pbar.update(metadata["ChunkSize"])
+                    if line["Type"] == "Error":
+                        print(RED + f"[-] Error: {line['Message']}" + RESET)
+                        log.error(f"Error: {line['Message']}")
+                        return
                 cursor = len(output)
             pbar.close()
             bin.close()
