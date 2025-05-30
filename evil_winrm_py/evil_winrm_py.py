@@ -546,24 +546,25 @@ def interactive_shell(
                     remote_path = command_parts[1]
                     local_path = command_parts[2]
 
-                    remote_path, streams, had_errors = run_ps(
+                    remote_file, streams, had_errors = run_ps(
                         r_pool, f"(Resolve-Path -Path {remote_path}).Path"
                     )
-                    if not remote_path:
+                    if not remote_file:
                         print(
                             RED
                             + f"[-] Remote file {remote_path} does not exist."
                             + RESET
                         )
+                        continue
 
-                    file_name = remote_path.split("\\")[-1]
+                    file_name = remote_file.split("\\")[-1]
 
                     if Path(local_path).is_dir() or local_path.endswith(os.sep):
                         local_path = Path(local_path).resolve().joinpath(file_name)
                     else:
                         local_path = Path(local_path).resolve()
 
-                    download_file(r_pool, remote_path, str(local_path))
+                    download_file(r_pool, remote_file, str(local_path))
                     continue
                 elif command_lower.startswith("upload"):
                     command_parts = quoted_command_split(command)
