@@ -546,11 +546,15 @@ def interactive_shell(
                     remote_path = command_parts[1]
                     local_path = command_parts[2]
 
-                    if not re.match(r"^[a-zA-Z]:", remote_path):
-                        # If the path doesn't start with a drive letter, prepend the current directory
-                        pwd, streams, had_errors = run_ps(r_pool, "$pwd.Path")
-                        # Ensure the remote path is absolute
-                        remote_path = f"{pwd}\\{remote_path}"
+                    remote_path, streams, had_errors = run_ps(
+                        r_pool, f"(Resolve-Path -Path {remote_path}).Path"
+                    )
+                    if not remote_path:
+                        print(
+                            RED
+                            + f"[-] Remote file {remote_path} does not exist."
+                            + RESET
+                        )
 
                     file_name = remote_path.split("\\")[-1]
 
