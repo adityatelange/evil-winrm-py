@@ -51,12 +51,6 @@ try {
     # $ChunkSize here is critical and should be the actual length of $chunkBytes for this specific chunk
     $fileStream.Write($chunkBytes, 0, $chunkBytes.Length) # Use $chunkBytes.Length for safety
     $fileStream.Close()
-
-    # Output the success message
-    [PSCustomObject]@{
-        Type        = "Log"
-        Message     = "Successfully appended $($chunkBytes.Length) bytes to '$FilePath'."
-    } | ConvertTo-Json -Compress | Write-Output # Pipe JSON to stdout
 }
 catch {
     $FullExceptionMessage = "$($_.Exception.GetType().FullName): $($_.Exception.Message)"
