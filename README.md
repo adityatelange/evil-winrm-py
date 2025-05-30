@@ -6,7 +6,7 @@
 
 `evil-winrm-py` is a python-based tool for executing commands on remote Windows machines using the WinRM (Windows Remote Management) protocol. It provides an interactive shell.
 
-![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.9/assets/terminal.png)
+![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v0.0.10/assets/terminal.png)
 
 > [!NOTE]
 > This tool is designed strictly for educational, ethical use, and authorized penetration testing. Always ensure you have explicit authorization before accessing any system. Unauthorized access or misuse of this tool is both illegal and unethical.
@@ -27,6 +27,7 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Support for SSL to secure communication with the remote host.
 - Support for custom WSMan URIs.
 - Download files from the remote host to the local machine.
+- Upload files from the local machine to the remote host.
 - Auto-complete remote file and directory paths.
 - Enable logging and debugging for better traceability.
 - Navigate command history using up/down arrow keys.
@@ -106,6 +107,18 @@ Example:
 
 ```bash
 evil-winrm-py -i 192.168.1.100 -u Administrator -p P@ssw0rd --ssl
+```
+
+## Menu Commands (inside evil-winrm-py shell)
+
+```bash
+Menu:
+[+] upload <local_path> <remote_path>                       - Upload a file
+[+] download <remote_path> <local_path>                     - Download a file
+[+] menu                                                    - Show this menu
+[+] clear, cls                                              - Clear the screen
+[+] exit                                                    - Exit the shell
+Note: Use absolute paths for upload/download for reliability.
 ```
 
 ## Credits
