@@ -800,6 +800,9 @@ def main():
     except AuthenticationError as ae:
         print(RED + "[-] Authentication failed: {}".format(ae) + RESET)
         log.error("Authentication failed: {}".format(ae))
+    except WSManFaultError as wfe:
+        print(RED + "[-] WSMan fault error: {}".format(wfe) + RESET)
+        log.error("WSMan fault error: {}".format(wfe))
     except Krb5Error as ke:
         print(RED + "[-] Kerberos error: {}".format(ke) + RESET)
         log.error("Kerberos error: {}".format(ke))
