@@ -386,6 +386,112 @@ def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> No
         log.error("File hash mismatch. Downloaded file may be corrupted.")
 
 
+def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None:
+    hexdigest = hashlib.md5(open(local_path, "rb").read()).hexdigest().upper()
+    with open(local_path, "rb") as bin:
+        file_size = Path(local_path).stat().st_size
+        chunk_size_bytes = 65536  # 64 KB
+        total_chunks = (file_size + chunk_size_bytes - 1) // chunk_size_bytes
+        metadata = {"FileHash": ""}  # Declare a psuedo metadata
+
+        pbar = tqdm(
+            total=file_size,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            desc=f"Uploading {local_path}",
+            dynamic_ncols=True,
+            mininterval=0.1,
+        )
+        try:
+            temp_file_path = ""
+            for i in range(total_chunks):
+                start_offset = i * chunk_size_bytes
+                bin.seek(start_offset)
+                chunk = bin.read(chunk_size_bytes)
+
+                if not chunk:  # End of file
+                    break
+
+                if i == 0:
+                    chunk_type = 0  # First chunk, tells PS script to create file
+                elif i == total_chunks - 1:
+                    chunk_type = 1  # Last chunk, tells PS script to calculate hash
+                else:
+                    chunk_type = 2  # Intermediate chunk
+
+                base64_chunk = base64.b64encode(chunk).decode("utf-8")
+
+                script = get_ps_script("send.ps1")
+                with DelayedKeyboardInterrupt():
+                    ps = PowerShell(r_pool)
+                    ps.add_script(script)
+                    ps.add_parameter("Base64Chunk", base64_chunk)
+                    ps.add_parameter("ChunkType", chunk_type)
+
+                    if chunk_type == 1:
+                        # If it's the last chunk, we provide the file path and hash
+                        ps.add_parameter("TempFilePath", temp_file_path)
+                        ps.add_parameter("FilePath", remote_path)
+                        ps.add_parameter("FileHash", hexdigest)
+                    elif chunk_type == 2:
+                        ps.add_parameter("TempFilePath", temp_file_path)
+
+                    ps.begin_invoke()
+
+                    while ps.state == PSInvocationState.RUNNING:
+                        ps.poll_invoke()
+                output = ps.output
+
+                for line in output:
+                    line = json.loads(line)
+                    if line["Type"] == "Metadata":
+                        metadata = line
+                        if "TempFilePath" in metadata:
+                            temp_file_path = metadata["TempFilePath"]
+
+                    if line["Type"] == "Error":
+                        print(RED + f"[-] Error: {line['Message']}" + RESET)
+                        log.error(f"Error: {line['Message']}")
+                        return
+                if ps.had_errors:
+                    if ps.streams.error:
+                        for error in ps.streams.error:
+                            print(error)
+
+                pbar.update(chunk_size_bytes)
+            pbar.close()
+
+            # Verify the downloaded file's hash
+            if metadata["FileHash"] == hexdigest:
+                print(
+                    GREEN
+                    + "[+] File uploaded successfully as: "
+                    + metadata["FilePath"]
+                    + RESET
+                )
+                log.info(
+                    "File uploaded successfully as: {}".format(metadata["FilePath"])
+                )
+            else:
+                print(
+                    RED
+                    + "[-] File hash mismatch. Uploaded file may be corrupted."
+                    + RESET
+                )
+                log.error("File hash mismatch. Uploaded file may be corrupted.")
+
+        except KeyboardInterrupt:
+            if "pbar" in locals() and pbar:
+                pbar.leave = (
+                    False  # Make the progress bar disappear on close after interrupt
+                )
+                pbar.close()
+            if ps.state == PSInvocationState.RUNNING:
+                log.info("Stopping command execution.")
+                ps.stop()
+
+
 def interactive_shell(
     wsman: WSMan, configuration_name: str = DEFAULT_CONFIGURATION_NAME
 ) -> None:
@@ -454,6 +560,37 @@ def interactive_shell(
                         local_path = Path(local_path).resolve()
 
                     download_file(r_pool, remote_path, str(local_path))
+                    continue
+                elif command_lower.startswith("upload"):
+                    command_parts = quoted_command_split(command)
+                    if len(command_parts) < 3:
+                        print(
+                            RED + "[-] Usage: upload <local_path> <remote_path>" + RESET
+                        )
+                        continue
+                    local_path = command_parts[1]
+                    remote_path = command_parts[2]
+
+                    if not Path(local_path).exists():
+                        print(
+                            RED + f"[-] Local file {local_path} does not exist." + RESET
+                        )
+                        continue
+
+                    file_name = local_path.split("\\")[-1]
+
+                    if not re.match(r"^[a-zA-Z]:", remote_path):
+                        # If the path doesn't start with a drive letter, prepend the current directory
+                        pwd, streams, had_errors = run_ps(r_pool, "$pwd.Path")
+                        if remote_path == ".":
+                            remote_path = f"{pwd}\\{file_name}"
+                        else:
+                            remote_path = f"{pwd}\\{remote_path}"
+
+                    if remote_path.endswith("\\"):
+                        remote_path = f"{remote_path}{file_name}"
+
+                    upload_file(r_pool, str(Path(local_path).resolve()), remote_path)
                     continue
                 else:
                     try:
