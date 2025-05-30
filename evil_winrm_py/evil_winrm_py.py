@@ -130,8 +130,8 @@ def show_menu() -> None:
     print(BOLD + "\nMenu:" + RESET)
     commands = [
         # ("command", "description")
-        ("upload /path/to/local/file C:\\path\\to\\remote\\file", "Upload a file"),
-        ("download C:\\path\\to\\remote\\file /path/to/local/file", "Download a file"),
+        ("upload <local_path> <remote_path>", "Upload a file"),
+        ("download <remote_path> <local_path>", "Download a file"),
         ("menu", "Show this menu"),
         ("clear, cls", "Clear the screen"),
         ("exit", "Exit the shell"),
