@@ -16,7 +16,10 @@ $fileInfo = $null   # To store file information
 
 # --- Pre-check and initial metadata ---
 if (-not (Test-Path -Path $FilePath -PathType Leaf)) {
-    Write-Error "Error: The specified file path does not exist or is not a file: '$FilePath'"
+    [PSCustomObject]@{
+        Type        = "Error"
+        Message     = "Error: The specified file path does not exist or is not a file: '$FilePath'"
+    } | ConvertTo-Json -Compress | Write-Output # Pipe JSON to stdout
     exit 1 # Exit the script with an error code
 }
 
@@ -39,7 +42,10 @@ try {
 
 }
 catch {
-    Write-Error "Error getting file information or outputting metadata: $($_.Exception.Message)"
+    [PSCustomObject]@{
+        Type        = "Error"
+        Message     = "Error getting file information or outputting metadata: $($_.Exception.Message)"
+    } | ConvertTo-Json -Compress | Write-Output # Pipe JSON to stdout
     exit 1
 }
 
@@ -71,7 +77,10 @@ try {
 
 }
 catch {
-    Write-Error "Error during Base64 chunk processing: $($_.Exception.Message)"
+    [PSCustomObject]@{
+        Type        = "Error"
+        Message     = "Error during Base64 chunk processing: $($_.Exception.Message)"
+    } | ConvertTo-Json -Compress | Write-Output # Pipe JSON to stdout
 }
 finally {
     if ($fileStream) {
