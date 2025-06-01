@@ -21,13 +21,13 @@ $fileStream = $null # Initialize as null for safety in finally block
 
 
 # --- Pre-checks ---
-# IF chunkPosition is 0 its a new file
-if ($ChunkType -eq 0) {
+# IF chunkPosition is 0 or 3 its a new file
+if ($ChunkType -eq 0 -or $ChunkType -eq 3) {
     # If this is the first chunk, create a tmporary file path
     $TempFilePath = [System.IO.Path]::GetTempFileName()
     # Output initial file metadata as JSON
     [PSCustomObject]@{
-        Type        = "Metadata"
+        Type            = "Metadata"
         TempFilePath    = $TempFilePath
     } | ConvertTo-Json -Compress | Write-Output # Pipe JSON to stdout
 }
@@ -67,8 +67,8 @@ finally {
 }
 
 # --- Calculate checksum ---
-# Caculate the MD5 hash of the file after writing if ChunkType is 1
-if ($ChunkType -eq 1) {
+# Caculate the MD5 hash of the file after writing if ChunkType is 1 or 3
+if ($ChunkType -eq 1 -or $ChunkType -eq 3) {
     try {
         if ($TempFilePath) {
             # If a file hash is provided, verify it

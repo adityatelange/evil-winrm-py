@@ -417,7 +417,9 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                 if not chunk:  # End of file
                     break
 
-                if i == 0:
+                if len(chunk) < chunk_size_bytes:
+                    chunk_type = 3
+                elif i == 0:
                     chunk_type = 0  # First chunk, tells PS script to create file
                 elif i == total_chunks - 1:
                     chunk_type = 1  # Last chunk, tells PS script to calculate hash
@@ -440,6 +442,9 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                         ps.add_parameter("FileHash", hexdigest)
                     elif chunk_type == 2:
                         ps.add_parameter("TempFilePath", temp_file_path)
+                    elif chunk_type == 3:
+                        ps.add_parameter("FilePath", remote_path)
+                        ps.add_parameter("FileHash", hexdigest)
 
                     ps.begin_invoke()
 
@@ -462,8 +467,10 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                     if ps.streams.error:
                         for error in ps.streams.error:
                             print(error)
-
-                pbar.update(chunk_size_bytes)
+                if chunk_type == 3:
+                    pbar.update(file_size)
+                else:
+                    pbar.update(chunk_size_bytes)
             pbar.close()
 
             # Verify the downloaded file's hash
