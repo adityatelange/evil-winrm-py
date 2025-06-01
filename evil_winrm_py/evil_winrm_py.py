@@ -581,10 +581,10 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                 if not chunk:  # End of file
                     break
 
-                if len(chunk) < chunk_size_bytes:
-                    chunk_type = 3
                 elif i == 0:
                     chunk_type = 0  # First chunk, tells PS script to create file
+                    if len(chunk) < chunk_size_bytes:
+                        chunk_type = 3
                 elif i == total_chunks - 1:
                     chunk_type = 1  # Last chunk, tells PS script to calculate hash
                 else:
