@@ -299,9 +299,30 @@ def quoted_command_split(command: str) -> list[str]:
     Splits a command string into parts, respecting quoted strings.
     This is useful for handling paths with spaces or special characters.
     """
-    pattern = r'"([^"]+)"|(\S+)'
-    matches = re.findall(pattern, command)
-    return [m[0] or m[1] for m in matches if m[0] or m[1]]
+    actual_command_parts = []
+    continuation = False
+    cursor = 0
+
+    command_parts = command.split(" ")
+    for part in command_parts:
+        if not part:
+            continue
+        if continuation:
+            actual_command_parts[cursor] = actual_command_parts[cursor] + " " + part
+            if part.endswith('"'):
+                continuation = False
+                cursor += 1
+        else:
+            if part.startswith('"'):
+                actual_command_parts += [part]
+                continuation = True
+            elif part.find('"') != -1:
+                # #TODO: decide later how to handle this case
+                pass
+            else:
+                actual_command_parts += [part]
+                cursor += 1
+    return actual_command_parts
 
 
 def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> None:
