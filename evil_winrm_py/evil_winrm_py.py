@@ -191,6 +191,29 @@ def get_remote_path_suggestions(
     return ps.output
 
 
+def get_local_path_suggestions(path: str) -> list[str]:
+    """
+    Returns a list of local path suggestions based on path entered by the user.
+    """
+    directory_prefix, partial_name = get_directory_and_partial_name(path, sep=os.sep)
+    suggestions = []
+
+    # Get all files and directories in the specified path
+    try:
+        entries = Path(directory_prefix).iterdir()
+        for entry in entries:
+            if entry.match(f"{partial_name}*"):
+                if entry.is_dir():
+                    entry = (
+                        f"{entry}{os.sep}"  # Append a trailing slash for directories
+                    )
+                suggestions.append(str(entry))
+    except (FileNotFoundError, NotADirectoryError, PermissionError):
+        pass
+    finally:
+        return suggestions
+
+
 class CommandPathCompleter(Completer):
     """
     Completer for command paths in the interactive shell.
