@@ -193,11 +193,10 @@ def get_remote_path_suggestions(
     return ps.output
 
 
-def get_local_path_suggestions(path: str) -> list[str]:
+def get_local_path_suggestions(directory_prefix: str, partial_name: str) -> list[str]:
     """
     Returns a list of local path suggestions based on path entered by the user.
     """
-    directory_prefix, partial_name = get_directory_and_partial_name(path, sep=os.sep)
     suggestions = []
 
     # Get all files and directories in the specified path
@@ -273,16 +272,16 @@ class CommandPathCompleter(Completer):
                 # User typed "upload "
                 # Completing the 1st argument (local_path), currently empty
                 current_arg_text_being_completed = ""
-                suggestions = get_local_path_suggestions(
-                    current_arg_text_being_completed
+                directory_prefix, partial_name = get_directory_and_partial_name(
+                    current_arg_text_being_completed, sep=os.sep
                 )
+                suggestions = get_local_path_suggestions(directory_prefix, partial_name)
             elif num_args_present == 1:
                 # We have one argument part, e.g., "upload arg1" or "upload local_path "
                 if path_typed_segment.endswith(" "):
                     # 1st argument (local_path) is complete
                     # Completing the 2nd argument (remote_path), currently empty
                     current_arg_text_being_completed = ""
-
                     directory_prefix, partial_name = get_directory_and_partial_name(
                         current_arg_text_being_completed, sep="\\"
                     )
@@ -296,8 +295,11 @@ class CommandPathCompleter(Completer):
                         path_being_completed = current_arg_text_being_completed.strip(
                             '"'
                         )
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        path_being_completed, sep=os.sep
+                    )
                     suggestions = get_local_path_suggestions(
-                        current_arg_text_being_completed
+                        directory_prefix, partial_name
                     )
             elif num_args_present == 2:
                 #  We have two argument parts
@@ -340,8 +342,11 @@ class CommandPathCompleter(Completer):
                 if path_typed_segment.endswith(" "):
                     # First arg (remote_path) is complete. Completing 2nd arg (local_path), empty.
                     current_arg_text_being_completed = ""
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        current_arg_text_being_completed, sep=os.sep
+                    )
                     suggestions = get_local_path_suggestions(
-                        current_arg_text_being_completed
+                        directory_prefix, partial_name
                     )
                 else:
                     # Still completing 1st arg (remote_path)
@@ -369,7 +374,12 @@ class CommandPathCompleter(Completer):
                         path_being_completed = current_arg_text_being_completed.strip(
                             '"'
                         )
-                    suggestions = get_local_path_suggestions(path_being_completed)
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        path_being_completed, sep=os.sep
+                    )
+                    suggestions = get_local_path_suggestions(
+                        directory_prefix, partial_name
+                    )
             else:
                 # More than 2 arguments, e.g., "download remote_path local_path extra_arg"
                 pass
