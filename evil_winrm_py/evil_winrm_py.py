@@ -244,7 +244,7 @@ class CommandPathCompleter(Completer):
             for cmd_sugg in MENU_COMMANDS:
                 if cmd_sugg.startswith(command_typed_part):
                     yield Completion(
-                        cmd_sugg,  # Full suggested command
+                        cmd_sugg + " ",  # Full suggested command
                         start_position=-len(
                             command_typed_part
                         ),  # Replace the typed part
@@ -253,35 +253,143 @@ class CommandPathCompleter(Completer):
             return
 
         # Case 2: Completing a path argument
-        #   a) There are two tokens (command + start of argument) -> "download C:\Pr"
-        #   b) There's one token & a trailing space (command + space), -> "download "
-
         path_typed_segment = ""  # What the user has typed for the current path argument
         if len(tokens) == 2:
             path_typed_segment = tokens[1]
-        # If len(tokens) == 1 and text_before_cursor.endswith(" "),
-        # path_typed_segment remains "" (correct for completing a new, empty argument).
 
         actual_command_name = command_typed_part.strip().lower()
 
-        # Unquote the typed quotes
-        path_for_query = path_typed_segment.strip('"')
+        args = quoted_command_split(path_typed_segment.strip())
 
-        if actual_command_name == "cd":
-            dirs_only = True
+        suggestions = []
+        current_arg_text_being_completed = ""
+        directory_prefix = partial_name = ""
 
-        directory_prefix, partial_name = get_directory_and_partial_name(path_for_query)
+        if actual_command_name == "upload":
+            # syntax: upload <local_path> <remote_path>
+            num_args_present = len(args)
 
-        remote_suggestions = get_remote_path_suggestions(
-            self.r_pool, directory_prefix, partial_name, dirs_only
-        )
+            if num_args_present == 0:
+                # User typed "upload "
+                # Completing the 1st argument (local_path), currently empty
+                current_arg_text_being_completed = ""
+                suggestions = get_local_path_suggestions(
+                    current_arg_text_being_completed
+                )
+            elif num_args_present == 1:
+                # We have one argument part, e.g., "upload arg1" or "upload local_path "
+                if path_typed_segment.endswith(" "):
+                    # 1st argument (local_path) is complete
+                    # Completing the 2nd argument (remote_path), currently empty
+                    current_arg_text_being_completed = ""
 
-        for sugg_path in remote_suggestions:
-            # sugg_path is the clean suggested path string from PowerShell
-            # "C:\Program Files" or "My Document.docx"
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        current_arg_text_being_completed, sep="\\"
+                    )
+                    suggestions = get_remote_path_suggestions(
+                        self.r_pool, directory_prefix, partial_name
+                    )
+                else:
+                    # Still completing the 1st argument (local_path), e.g., "upload arg1"
+                    current_arg_text_being_completed = path_being_completed = args[0]
+                    if path_being_completed.startswith('"'):
+                        path_being_completed = current_arg_text_being_completed.strip(
+                            '"'
+                        )
+                    suggestions = get_local_path_suggestions(
+                        current_arg_text_being_completed
+                    )
+            elif num_args_present == 2:
+                #  We have two argument parts
+                # e.g., "upload local_path arg2" or "upload local_path remote_path "
+                if path_typed_segment.endswith(" "):
+                    # 2nd argument (remote_path) is complete. No more suggestions for "upload".
+                    pass
+                else:
+                    # Completing the 2nd argument (remote_path), e.g., "upload local_path arg2"
+                    current_arg_text_being_completed = path_being_completed = args[1]
+                    if path_being_completed.startswith('"'):
+                        path_being_completed = current_arg_text_being_completed.strip(
+                            '"'
+                        )
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        path_being_completed, sep="\\"
+                    )
+                    suggestions = get_remote_path_suggestions(
+                        self.r_pool, directory_prefix, partial_name
+                    )
+            else:
+                # More than 2 arguments, e.g., "upload local_path remote_path extra_arg"
+                pass
+        elif actual_command_name == "download":
+            # syntax: download <remote_path> <local_path>
+            num_args_present = len(args)
 
-            # path_typed_segment is what the user typed for this path argument
-            # "C:\Pr", or "My D", or "" (if completing after a space)
+            if num_args_present == 0:
+                # User typed "download "
+                # Completing 1st arg (remote_path), empty
+                current_arg_text_being_completed = ""
+                directory_prefix, partial_name = get_directory_and_partial_name(
+                    current_arg_text_being_completed, sep="\\"
+                )
+                suggestions = get_remote_path_suggestions(
+                    self.r_pool, directory_prefix, partial_name
+                )
+            elif num_args_present == 1:
+                # We have "download arg1" or "download local_path "
+                if path_typed_segment.endswith(" "):
+                    # First arg (remote_path) is complete. Completing 2nd arg (local_path), empty.
+                    current_arg_text_being_completed = ""
+                    suggestions = get_local_path_suggestions(
+                        current_arg_text_being_completed
+                    )
+                else:
+                    # Still completing 1st arg (remote_path)
+                    current_arg_text_being_completed = path_being_completed = args[0]
+                    if path_being_completed.startswith('"'):
+                        path_being_completed = current_arg_text_being_completed.strip(
+                            '"'
+                        )
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        path_being_completed, sep="\\"
+                    )
+                    suggestions = get_remote_path_suggestions(
+                        self.r_pool, directory_prefix, partial_name
+                    )
+            elif num_args_present == 2:
+                # We have two argument parts
+                # e.g., "download remote_path arg2" or "download remote_path local_path "
+                if path_typed_segment.endswith(" "):
+                    # 2nd argument (local_path) is complete. No more suggestions for "download".
+                    pass
+                else:
+                    # Completing 2nd arg (local_path)
+                    current_arg_text_being_completed = path_being_completed = args[1]
+                    if path_being_completed.startswith('"'):
+                        path_being_completed = current_arg_text_being_completed.strip(
+                            '"'
+                        )
+                    suggestions = get_local_path_suggestions(path_being_completed)
+            else:
+                # More than 2 arguments, e.g., "download remote_path local_path extra_arg"
+                pass
+        else:
+            if actual_command_name == "cd":
+                dirs_only = True
+
+            current_arg_text_being_completed = path_being_completed = path_typed_segment
+
+            if path_being_completed.startswith('"'):
+                path_being_completed = current_arg_text_being_completed.strip('"')
+
+            directory_prefix, partial_name = get_directory_and_partial_name(
+                path_being_completed, sep="\\"
+            )
+            suggestions = get_remote_path_suggestions(
+                self.r_pool, directory_prefix, partial_name, dirs_only
+            )
+
+        for sugg_path in suggestions:
 
             # If the path doesn't start with a drive letter, prepend the directory_prefix
             if (
@@ -293,16 +401,16 @@ class CommandPathCompleter(Completer):
 
             text_to_insert_in_prompt = sugg_path
 
-            if " " in sugg_path:  # If the suggestion itself contains a space
-                # Enclose the entire suggested path in quotes
+            if " " in sugg_path:
+                # If the path contains spaces, quote it
                 text_to_insert_in_prompt = f'"{sugg_path}"'
 
             yield Completion(
-                text_to_insert_in_prompt,  # The text to insert (possibly quoted)
+                text_to_insert_in_prompt,
                 start_position=-len(
-                    path_typed_segment
-                ),  # Replace the segment typed by the user
-                display=sugg_path,  # Show the clean (unquoted) path in the completion menu
+                    current_arg_text_being_completed
+                ),  # Use the length of quoted part
+                display=sugg_path,
             )
 
 
