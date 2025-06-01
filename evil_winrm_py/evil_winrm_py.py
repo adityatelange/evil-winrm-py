@@ -575,16 +575,16 @@ def interactive_shell(
                             + RESET
                         )
                         continue
-                    remote_path = command_parts[1]
-                    local_path = command_parts[2]
+                    remote_path = command_parts[1].strip('"')
+                    local_path = command_parts[2].strip('"')
 
                     remote_file, streams, had_errors = run_ps(
-                        r_pool, f"(Resolve-Path -Path {remote_path}).Path"
+                        r_pool, f"(Resolve-Path -Path '{remote_path}').Path"
                     )
                     if not remote_file:
                         print(
                             RED
-                            + f"[-] Remote file {remote_path} does not exist."
+                            + f"[-] Remote file '{remote_path}' does not exist."
                             + RESET
                         )
                         continue
@@ -605,12 +605,14 @@ def interactive_shell(
                             RED + "[-] Usage: upload <local_path> <remote_path>" + RESET
                         )
                         continue
-                    local_path = command_parts[1]
-                    remote_path = command_parts[2]
+                    local_path = command_parts[1].strip('"')
+                    remote_path = command_parts[2].strip('"')
 
                     if not Path(local_path).exists():
                         print(
-                            RED + f"[-] Local file {local_path} does not exist." + RESET
+                            RED
+                            + f"[-] Local file '{local_path}' does not exist."
+                            + RESET
                         )
                         continue
 
