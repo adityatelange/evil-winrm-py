@@ -488,8 +488,13 @@ def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> No
                     ps.poll_invoke()
                 output = ps.output
                 if cursor == 0:
-                    # The first line contains metadata
-                    metadata = json.loads(output[0])
+                    line = json.loads(output[0])
+                    if line["Type"] == "Error":
+                        print(RED + f"[-] Error: {line['Message']}" + RESET)
+                        log.error(f"Error: {line['Message']}")
+                        return
+                    elif line["Type"] == "Metadata":
+                        metadata = line
                     pbar = tqdm(
                         total=metadata["FileSize"],
                         unit="B",
