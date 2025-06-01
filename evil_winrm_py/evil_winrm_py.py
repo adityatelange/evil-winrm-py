@@ -142,12 +142,14 @@ def show_menu() -> None:
     print("Note: Use absolute paths for upload/download for reliability.\n")
 
 
-def get_directory_and_partial_name(text: str) -> tuple[str, str]:
+def get_directory_and_partial_name(text: str, sep: str) -> tuple[str, str]:
     """
     Parses the input text to find the directory prefix and the partial name.
     """
+    if sep not in ["\\", "/"]:
+        raise ValueError("Separator must be either '\\' or '/'")
     # Find the last unquoted slash or backslash
-    last_sep_index = text.rfind("\\")
+    last_sep_index = text.rfind(sep)
     if last_sep_index == -1:
         # No separator found, the whole text is the partial name in the current directory
         directory_prefix = ""
