@@ -586,7 +586,7 @@ def interactive_shell(
                         )
                         continue
 
-                    file_name = local_path.split("\\")[-1]
+                    file_name = local_path.split(os.sep)[-1]
 
                     if not re.match(r"^[a-zA-Z]:", remote_path):
                         # If the path doesn't start with a drive letter, prepend the current directory
