@@ -18,6 +18,7 @@ import signal
 import sys
 import tempfile
 import time
+import traceback
 from importlib import resources
 from pathlib import Path
 
@@ -985,25 +986,30 @@ def main():
     except WinRMTransportError as wte:
         print(RED + "[-] WinRM transport error: {}".format(wte) + RESET)
         log.error("WinRM transport error: {}".format(wte))
+        sys.exit(1)
     except requests.exceptions.ConnectionError as ce:
         print(RED + "[-] Connection error: {}".format(ce) + RESET)
         log.error("Connection error: {}".format(ce))
+        sys.exit(1)
     except AuthenticationError as ae:
         print(RED + "[-] Authentication failed: {}".format(ae) + RESET)
         log.error("Authentication failed: {}".format(ae))
+        sys.exit(1)
     except WSManFaultError as wfe:
         print(RED + "[-] WSMan fault error: {}".format(wfe) + RESET)
         log.error("WSMan fault error: {}".format(wfe))
+        sys.exit(1)
     except Krb5Error as ke:
         print(RED + "[-] Kerberos error: {}".format(ke) + RESET)
         log.error("Kerberos error: {}".format(ke))
+        sys.exit(1)
     except (OperationNotAvailableError, NoCredentialError) as se:
         print(RED + "[-] SpnegoError error: {}".format(se) + RESET)
         log.error("SpnegoError error: {}".format(se))
+        sys.exit(1)
     except Exception as e:
-        print(e.__class__, e)
-        log.exception("An unexpected error occurred: {}".format(e))
+        traceback.print_exc()
+        log.exception("An unexpected error occurred: {}".format(e), exc_info=True)
         sys.exit(1)
     finally:
         log.info("--- Evil-WinRM-Py v{} ended ---".format(__version__))
-        sys.exit(0)
