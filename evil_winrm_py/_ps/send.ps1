@@ -23,8 +23,8 @@ $fileStream = $null # Initialize as null for safety in finally block
 # --- Pre-checks ---
 # IF chunkPosition is 0 or 3 its a new file
 if ($ChunkType -eq 0 -or $ChunkType -eq 3) {
-    # If this is the first chunk, create a tmporary file path
-    $TempFilePath = [System.IO.Path]::GetTempFileName()
+    # If this is the first chunk, create a unique temporary file path
+    $TempFilePath = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.IO.Path]::GetRandomFileName())
     # Output initial file metadata as JSON
     [PSCustomObject]@{
         Type            = "Metadata"
