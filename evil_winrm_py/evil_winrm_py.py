@@ -631,6 +631,7 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                     if line["Type"] == "Error":
                         print(RED + f"[-] Error: {line['Message']}" + RESET)
                         log.error(f"Error: {line['Message']}")
+                        pbar.leave = False  # Make the progress bar disappear on close
                         return
                 if ps.had_errors:
                     if ps.streams.error:
