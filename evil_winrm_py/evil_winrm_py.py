@@ -800,11 +800,14 @@ def interactive_shell(
                         log.info("Command execution completed.")
                         log.info("Output: {}".format("\n".join(output)))
 
-                        if ps.had_errors:
-                            if ps.streams.error:
-                                for error in ps.streams.error:
-                                    print(error)
-                                    log.error("Error: {}".format(error))
+                        if ps.streams.error:
+                            for error in ps.streams.error:
+                                print(RED + error._to_string + RESET)
+                                log.error("Error: {}".format(error._to_string))
+                                log.error("\tCategoryInfo: {}".format(error.message))
+                                log.error(
+                                    "\tFullyQualifiedErrorId: {}".format(error.fq_error)
+                                )
                     except KeyboardInterrupt:
                         if ps.state == PSInvocationState.RUNNING:
                             log.info("Stopping command execution.")
