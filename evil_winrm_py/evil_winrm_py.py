@@ -732,7 +732,7 @@ def interactive_shell(
                     if not remote_file:
                         print(
                             RED
-                            + f"[-] Remote file '{remote_path}' does not exist."
+                            + f"[-] Remote file '{remote_path}' does not exist or you do not have permission to access it."
                             + RESET
                         )
                         continue
