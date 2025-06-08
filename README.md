@@ -43,7 +43,7 @@ Detailed documentation can be found in the [docs](docs/) directory.
 #### Installation of Kerberos prerequisites on Linux
 
 ```bash
-sudo apt install gcc python3-dev libkrb5-dev
+sudo apt install gcc python3-dev libkrb5-dev krb5-pkinit
 # Optional: krb5-user
 ```
 
@@ -82,7 +82,7 @@ Details on how to use `evil-winrm-py` can be found in the [Usage Guide](./docs/u
 
 ```bash
 usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--priv-key-pem PRIV_KEY_PEM]
-                     [--cert-pem CERT_PEM] [--uri URI] [--ssl] [--port PORT] [--log] [--no-colors] [--version]
+                     [--cert-pem CERT_PEM] [--uri URI] [--ssl] [--port PORT] [--log] [--debug] [--no-colors] [--version]
 
 options:
   -h, --help            show this help message and exit
@@ -104,6 +104,7 @@ options:
   --ssl                 use ssl
   --port PORT           remote host port (default 5985)
   --log                 log session to file
+  --debug               enable debug logging
   --no-colors           disable colors
   --version             show version
 ```
@@ -133,3 +134,7 @@ Note: Use absolute paths for upload/download for reliability.
 - Prompt Toolkit - https://github.com/prompt-toolkit/python-prompt-toolkit
 - tqdm - https://github.com/tqdm/tqdm
 - Thanks to [Github Coplilot](https://github.com/features/copilot) and [Google Gemini](https://gemini.google.com/app) for code suggestions and improvements.
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/adityatelange/evil-winrm-py.svg?background=%23ffffff00&axis=%23858585&line=%236b63ff)](https://starchart.cc/adityatelange/evil-winrm-py)
