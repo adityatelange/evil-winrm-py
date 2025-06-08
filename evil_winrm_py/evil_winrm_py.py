@@ -871,6 +871,7 @@ def main():
         "--port", type=int, default=5985, help="remote host port (default 5985)"
     )
     parser.add_argument("--log", action="store_true", help="log session to file")
+    parser.add_argument("--debug", action="store_true", help="enable debug logging")
     parser.add_argument("--no-colors", action="store_true", help="disable colors")
     parser.add_argument(
         "--version", action="version", version=__version__, help="show version"
@@ -942,14 +943,20 @@ def main():
     if args.ssl and (args.port == 5985):
         args.port = 5986
 
-    if args.log:
+    if args.log or args.debug:
+        level = logging.INFO
         # Disable all loggers except the root logger
-        for name in logging.root.manager.loggerDict:
-            if not name.startswith("evil_winrm_py"):
-                logging.getLogger(name).disabled = True
+        if args.debug:
+            print(BLUE + "[*] Debug logging enabled." + RESET)
+            level = logging.DEBUG
+        else:
+            # Disable all loggers except the root logger
+            for name in logging.root.manager.loggerDict:
+                if not name.startswith("evil_winrm_py"):
+                    logging.getLogger(name).disabled = True
         # Set up logging to a file
         logging.basicConfig(
-            level=logging.INFO,
+            level=level,
             format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
             filename=LOG_PATH,
         )
