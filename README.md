@@ -36,6 +36,8 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Lightweight and Python-based for ease of use.
 - Keyboard Interrupt (Ctrl+C) support to terminate long-running commands gracefully.
 
+Detailed documentation can be found in the [docs](docs/) directory.
+
 ## Installation (Windows/Linux)
 
 #### Installation of Kerberos prerequisites on Linux
@@ -75,6 +77,8 @@ pip uninstall evil-winrm-py
 ```
 
 ## Usage
+
+Details on how to use `evil-winrm-py` can be found in the [Usage Guide](./docs/usage.md).
 
 ```bash
 usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--priv-key-pem PRIV_KEY_PEM]
