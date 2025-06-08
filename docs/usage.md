@@ -66,7 +66,7 @@ evil-winrm-py -i <IP> -u <USERNAME> --priv-key-pem <PRIVATE_KEY_PEM_PATH> --cert
 
 ### Using SSL
 
-This will use port 5986 for SSL connections by default. If you want to use a different port, you can specify it with [custom ort option](#using-custom-port).
+This will use port 5986 for SSL connections by default. If you want to use a different port, you can specify it with [custom port option](#using-custom-port).
 
 ```bash
 evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --ssl
@@ -114,6 +114,47 @@ or you can set it to `stdout` to print the debug information to the console.
 
 ```bash
 export KRB5_TRACE=stdout evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
+```
+
+## Interactive Shell
+
+Once you have successfully authenticated, you will be dropped into an interactive shell where you can execute commands on the remote Windows machine.
+
+```
+        ▘▜      ▘
+    █▌▌▌▌▐ ▄▖▌▌▌▌▛▌▛▘▛▛▌▄▖▛▌▌▌
+    ▙▖▚▘▌▐▖  ▚▚▘▌▌▌▌ ▌▌▌  ▙▌▙▌
+                          ▌ ▄▌ v1.0.0
+[*] Connecting to 192.168.1.100 as Administrator
+evil-winrm-py PS C:\Users\Administrator\Documents> █
+```
+
+You can execute commands just like you would in a normal Windows command prompt. To exit the interactive shell, type `exit` or press `Ctrl+D`.
+If you want to cancel a command that is currently running, you can use `Ctrl+C`.
+
+### Menu Commands
+
+Inside the interactive shell, you can use the following commands:
+
+```
+Menu:
+[+] upload <local_path> <remote_path>                       - Upload a file
+[+] download <remote_path> <local_path>                     - Download a file
+[+] menu                                                    - Show this menu
+[+] clear, cls                                              - Clear the screen
+[+] exit                                                    - Exit the shell
+```
+
+### File Transfer
+
+You can upload and download files using the following commands:
+
+```
+evil-winrm-py PS C:\Users\Administrator\Documents> upload <local_path> <remote_path>
+```
+
+```
+evil-winrm-py PS C:\Users\Administrator\Documents> download <remote_path> <local_path>
 ```
 
 ## Additional Options
