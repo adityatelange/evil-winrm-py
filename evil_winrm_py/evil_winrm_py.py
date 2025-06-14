@@ -680,7 +680,7 @@ def keep_runspace_alive(r_pool: RunspacePool) -> None:
     This is useful to prevent the session from timing out due to inactivity.
     """
     while True:
-        time.sleep(120)  # Reconnect every 2 minutes
+        time.sleep(100)
         r_pool._connect_existing_client()
 
 
