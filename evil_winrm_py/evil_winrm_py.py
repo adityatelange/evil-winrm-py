@@ -19,6 +19,7 @@ import sys
 import tempfile
 import time
 import traceback
+import threading
 from importlib import resources
 from pathlib import Path
 
@@ -674,6 +675,15 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                 ps.stop()
 
 
+def keep_runspace_alive(r_pool: RunspacePool) -> None:
+    """Keeps the RunspacePool alive by periodically reconnecting to the existing client.
+    This is useful to prevent the session from timing out due to inactivity.
+    """
+    while True:
+        time.sleep(120)  # Reconnect every 2 minutes
+        r_pool._connect_existing_client()
+
+
 def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -980,6 +990,12 @@ def main():
             certificate_pem=args.cert_pem,
         ) as wsman:
             with RunspacePool(wsman) as r_pool:
+                # Start the background thread to keep the RunspacePool alive
+                threading.Thread(
+                    target=keep_runspace_alive, args=(r_pool,), daemon=True
+                ).start()
+
+                # Open the interactive shell
                 interactive_shell(r_pool)
     except WinRMTransportError as wte:
         print(RED + "[-] WinRM transport error: {}".format(wte) + RESET)
