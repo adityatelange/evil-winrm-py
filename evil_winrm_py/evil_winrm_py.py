@@ -674,9 +674,7 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                 ps.stop()
 
 
-def interactive_shell(
-    wsman: WSMan, configuration_name: str = DEFAULT_CONFIGURATION_NAME
-) -> None:
+def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
 
@@ -686,139 +684,131 @@ def interactive_shell(
     prompt_history = FileHistory(HISTORY_FILE)
     prompt_session = PromptSession(history=prompt_history)
 
-    with wsman, RunspacePool(wsman, configuration_name=configuration_name) as r_pool:
-        completer = CommandPathCompleter(r_pool)
+    # Set up command completer
+    completer = CommandPathCompleter(r_pool)
 
-        while True:
-            try:
-                prompt_text = ANSI(get_prompt(r_pool))
-                command = prompt_session.prompt(
-                    prompt_text,
-                    completer=completer,
-                    complete_while_typing=False,
-                )
+    while True:
+        try:
+            prompt_text = ANSI(get_prompt(r_pool))
+            command = prompt_session.prompt(
+                prompt_text,
+                completer=completer,
+                complete_while_typing=False,
+            )
 
-                if not command:
-                    continue
+            if not command:
+                continue
 
-                command = command.strip()  # Remove leading/trailing whitespace
-                command_lower = command.lower()
+            command = command.strip()  # Remove leading/trailing whitespace
+            command_lower = command.lower()
 
-                # Check for exit command
-                if command_lower == "exit":
-                    log.info("Exiting interactive shell.")
-                    return
-                elif command_lower in ["clear", "cls"]:
-                    log.info("Clearing the screen.")
-                    clear()  # Clear the screen
-                    continue
-                elif command_lower == "menu":
-                    log.info("Displaying menu.")
-                    show_menu()
-                    continue
-                elif command_lower.startswith("download"):
-                    command_parts = quoted_command_split(command)
-                    if len(command_parts) < 3:
-                        print(
-                            RED
-                            + "[-] Usage: download <remote_path> <local_path>"
-                            + RESET
-                        )
-                        continue
-                    remote_path = command_parts[1].strip('"')
-                    local_path = command_parts[2].strip('"')
-
-                    remote_file, streams, had_errors = run_ps(
-                        r_pool, f"(Resolve-Path -Path '{remote_path}').Path"
+            # Check for exit command
+            if command_lower == "exit":
+                log.info("Exiting interactive shell.")
+                return
+            elif command_lower in ["clear", "cls"]:
+                log.info("Clearing the screen.")
+                clear()  # Clear the screen
+                continue
+            elif command_lower == "menu":
+                log.info("Displaying menu.")
+                show_menu()
+                continue
+            elif command_lower.startswith("download"):
+                command_parts = quoted_command_split(command)
+                if len(command_parts) < 3:
+                    print(
+                        RED + "[-] Usage: download <remote_path> <local_path>" + RESET
                     )
-                    if not remote_file:
-                        print(
-                            RED
-                            + f"[-] Remote file '{remote_path}' does not exist or you do not have permission to access it."
-                            + RESET
-                        )
-                        continue
-
-                    file_name = remote_file.split("\\")[-1]
-
-                    if Path(local_path).is_dir() or local_path.endswith(os.sep):
-                        local_path = Path(local_path).resolve().joinpath(file_name)
-                    else:
-                        local_path = Path(local_path).resolve()
-
-                    download_file(r_pool, remote_file, str(local_path))
                     continue
-                elif command_lower.startswith("upload"):
-                    command_parts = quoted_command_split(command)
-                    if len(command_parts) < 3:
-                        print(
-                            RED + "[-] Usage: upload <local_path> <remote_path>" + RESET
-                        )
-                        continue
-                    local_path = command_parts[1].strip('"')
-                    remote_path = command_parts[2].strip('"')
+                remote_path = command_parts[1].strip('"')
+                local_path = command_parts[2].strip('"')
 
-                    if not Path(local_path).exists():
-                        print(
-                            RED
-                            + f"[-] Local file '{local_path}' does not exist."
-                            + RESET
-                        )
-                        continue
-
-                    file_name = local_path.split(os.sep)[-1]
-
-                    if not re.match(r"^[a-zA-Z]:", remote_path):
-                        # If the path doesn't start with a drive letter, prepend the current directory
-                        pwd, streams, had_errors = run_ps(r_pool, "$pwd.Path")
-                        if remote_path == ".":
-                            remote_path = f"{pwd}\\{file_name}"
-                        else:
-                            remote_path = f"{pwd}\\{remote_path}"
-
-                    if remote_path.endswith("\\"):
-                        remote_path = f"{remote_path}{file_name}"
-
-                    upload_file(r_pool, str(Path(local_path).resolve()), remote_path)
+                remote_file, streams, had_errors = run_ps(
+                    r_pool, f"(Resolve-Path -Path '{remote_path}').Path"
+                )
+                if not remote_file:
+                    print(
+                        RED
+                        + f"[-] Remote file '{remote_path}' does not exist or you do not have permission to access it."
+                        + RESET
+                    )
                     continue
+
+                file_name = remote_file.split("\\")[-1]
+
+                if Path(local_path).is_dir() or local_path.endswith(os.sep):
+                    local_path = Path(local_path).resolve().joinpath(file_name)
                 else:
-                    try:
-                        ps = PowerShell(r_pool)
-                        ps.add_cmdlet("Invoke-Expression").add_parameter(
-                            "Command", command
-                        )
-                        ps.add_cmdlet("Out-String").add_parameter("Stream")
-                        ps.begin_invoke()
-                        log.info("Executing command: {}".format(command))
+                    local_path = Path(local_path).resolve()
 
-                        cursor = 0
-                        while ps.state == PSInvocationState.RUNNING:
-                            with DelayedKeyboardInterrupt():
-                                ps.poll_invoke()
-                            output = ps.output
-                            for line in output[cursor:]:
-                                print(line)
-                            cursor = len(output)
-                        log.info("Command execution completed.")
-                        log.info("Output: {}".format("\n".join(output)))
+                download_file(r_pool, remote_file, str(local_path))
+                continue
+            elif command_lower.startswith("upload"):
+                command_parts = quoted_command_split(command)
+                if len(command_parts) < 3:
+                    print(RED + "[-] Usage: upload <local_path> <remote_path>" + RESET)
+                    continue
+                local_path = command_parts[1].strip('"')
+                remote_path = command_parts[2].strip('"')
 
-                        if ps.streams.error:
-                            for error in ps.streams.error:
-                                print(RED + error._to_string + RESET)
-                                log.error("Error: {}".format(error._to_string))
-                                log.error("\tCategoryInfo: {}".format(error.message))
-                                log.error(
-                                    "\tFullyQualifiedErrorId: {}".format(error.fq_error)
-                                )
-                    except KeyboardInterrupt:
-                        if ps.state == PSInvocationState.RUNNING:
-                            log.info("Stopping command execution.")
-                            ps.stop()
-            except KeyboardInterrupt:
-                print("\nCaught Ctrl+C. Type 'exit' or press Ctrl+D to exit.")
-                continue  # Allow user to continue or type exit
-            except EOFError:
-                return  # Exit on Ctrl+D
+                if not Path(local_path).exists():
+                    print(
+                        RED + f"[-] Local file '{local_path}' does not exist." + RESET
+                    )
+                    continue
+
+                file_name = local_path.split(os.sep)[-1]
+
+                if not re.match(r"^[a-zA-Z]:", remote_path):
+                    # If the path doesn't start with a drive letter, prepend the current directory
+                    pwd, streams, had_errors = run_ps(r_pool, "$pwd.Path")
+                    if remote_path == ".":
+                        remote_path = f"{pwd}\\{file_name}"
+                    else:
+                        remote_path = f"{pwd}\\{remote_path}"
+
+                if remote_path.endswith("\\"):
+                    remote_path = f"{remote_path}{file_name}"
+
+                upload_file(r_pool, str(Path(local_path).resolve()), remote_path)
+                continue
+            else:
+                try:
+                    ps = PowerShell(r_pool)
+                    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+                    ps.add_cmdlet("Out-String").add_parameter("Stream")
+                    ps.begin_invoke()
+                    log.info("Executing command: {}".format(command))
+
+                    cursor = 0
+                    while ps.state == PSInvocationState.RUNNING:
+                        with DelayedKeyboardInterrupt():
+                            ps.poll_invoke()
+                        output = ps.output
+                        for line in output[cursor:]:
+                            print(line)
+                        cursor = len(output)
+                    log.info("Command execution completed.")
+                    log.info("Output: {}".format("\n".join(output)))
+
+                    if ps.streams.error:
+                        for error in ps.streams.error:
+                            print(RED + error._to_string + RESET)
+                            log.error("Error: {}".format(error._to_string))
+                            log.error("\tCategoryInfo: {}".format(error.message))
+                            log.error(
+                                "\tFullyQualifiedErrorId: {}".format(error.fq_error)
+                            )
+                except KeyboardInterrupt:
+                    if ps.state == PSInvocationState.RUNNING:
+                        log.info("Stopping command execution.")
+                        ps.stop()
+        except KeyboardInterrupt:
+            print("\nCaught Ctrl+C. Type 'exit' or press Ctrl+D to exit.")
+            continue  # Allow user to continue or type exit
+        except EOFError:
+            return  # Exit on Ctrl+D
 
 
 # --- Main Function ---
@@ -989,7 +979,8 @@ def main():
             certificate_key_pem=args.priv_key_pem,
             certificate_pem=args.cert_pem,
         ) as wsman:
-            interactive_shell(wsman)
+            with RunspacePool(wsman) as r_pool:
+                interactive_shell(r_pool)
     except WinRMTransportError as wte:
         print(RED + "[-] WinRM transport error: {}".format(wte) + RESET)
         log.error("WinRM transport error: {}".format(wte))
