@@ -36,7 +36,7 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Lightweight and Python-based for ease of use.
 - Keyboard Interrupt (Ctrl+C) support to terminate long-running commands gracefully.
 
-Detailed documentation can be found in the [docs](docs/) directory.
+Detailed documentation can be found in the [docs](https://github.com/adityatelange/evil-winrm-py/blob/main/docs) directory.
 
 ## Installation (Windows/Linux)
 
@@ -78,11 +78,13 @@ pip uninstall evil-winrm-py
 
 ## Usage
 
-Details on how to use `evil-winrm-py` can be found in the [Usage Guide](./docs/usage.md).
+Details on how to use `evil-winrm-py` can be found in the [Usage Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/usage.md).
 
 ```bash
-usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [--priv-key-pem PRIV_KEY_PEM]
-                     [--cert-pem CERT_PEM] [--uri URI] [--ssl] [--port PORT] [--log] [--debug] [--no-colors] [--version]
+usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k]
+                     [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME]
+                     [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI] [--ssl]
+                     [--port PORT] [--log] [--debug] [--no-colors] [--version]
 
 options:
   -h, --help            show this help message and exit
