@@ -17,9 +17,9 @@ import shutil
 import signal
 import sys
 import tempfile
+import threading
 import time
 import traceback
-import threading
 from importlib import resources
 from pathlib import Path
 
@@ -31,7 +31,7 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.shortcuts import clear
 from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
-from pypsrp.powershell import DEFAULT_CONFIGURATION_NAME, PowerShell, RunspacePool
+from pypsrp.powershell import PowerShell, RunspacePool
 from pypsrp.wsman import WSMan, requests
 from spnego.exceptions import NoCredentialError, OperationNotAvailableError
 from tqdm import tqdm
