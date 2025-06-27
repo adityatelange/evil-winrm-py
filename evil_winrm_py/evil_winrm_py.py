@@ -55,6 +55,7 @@ from evil_winrm_py import __version__
 LOG_PATH = Path.cwd().joinpath("evil_winrm_py.log")
 HISTORY_FILE = Path.home().joinpath(".evil_winrm_py_history")
 HISTORY_LENGTH = 1000
+LAST_RUN_AT = 0
 MENU_COMMANDS = [
     "upload",
     "download",
@@ -114,6 +115,8 @@ def run_ps(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
     ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
     ps.add_cmdlet("Out-String").add_parameter("Stream")
     ps.invoke()
+    global LAST_RUN_AT
+    LAST_RUN_AT = int(time.time())
     return "\n".join(ps.output), ps.streams, ps.had_errors
 
 
@@ -192,6 +195,8 @@ def get_remote_path_suggestions(
     ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
     ps.add_cmdlet("Out-String").add_parameter("Stream")
     ps.invoke()
+    global LAST_RUN_AT
+    LAST_RUN_AT = int(time.time())
     return ps.output
 
 
@@ -488,6 +493,8 @@ def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> No
             while ps.state == PSInvocationState.RUNNING:
                 with DelayedKeyboardInterrupt():
                     ps.poll_invoke()
+                    global LAST_RUN_AT
+                    LAST_RUN_AT = int(time.time())
                 output = ps.output
                 if cursor == 0:
                     line = json.loads(output[0])
@@ -621,6 +628,8 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
 
                     while ps.state == PSInvocationState.RUNNING:
                         ps.poll_invoke()
+                        global LAST_RUN_AT
+                        LAST_RUN_AT = int(time.time())
                 output = ps.output
 
                 for line in output:
@@ -681,7 +690,17 @@ def keep_runspace_alive(r_pool: RunspacePool) -> None:
     """
     while True:
         time.sleep(100)
-        r_pool._connect_existing_client()
+        global LAST_RUN_AT
+        elapsed_time = time.time() - LAST_RUN_AT
+        if elapsed_time > 100 / 2:
+            log.info(
+                f"Reconnecting after {elapsed_time} to existing client to keep session alive."
+            )
+            try:
+                r_pool._connect_existing_client()
+            except (AuthenticationError, WinRMTransportError, WSManFaultError) as e:
+                log.error(f"Error while reconnecting: {e}")
+                break
 
 
 def interactive_shell(r_pool: RunspacePool) -> None:
@@ -795,6 +814,8 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     while ps.state == PSInvocationState.RUNNING:
                         with DelayedKeyboardInterrupt():
                             ps.poll_invoke()
+                            global LAST_RUN_AT
+                            LAST_RUN_AT = int(time.time())
                         output = ps.output
                         for line in output[cursor:]:
                             print(line)
