@@ -113,7 +113,7 @@ export KRB5_TRACE=/path/to/kerberos_debug.log
 or you can set it to `stdout` to print the debug information to the console.
 
 ```bash
-export KRB5_TRACE=stdout evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
+export KRB5_TRACE=/dev/stdout evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
 ```
 
 ## Interactive Shell
