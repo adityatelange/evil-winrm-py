@@ -32,7 +32,7 @@ from prompt_toolkit.shortcuts import clear
 from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
 from pypsrp.powershell import PowerShell, RunspacePool
-from pypsrp.wsman import WSMan, requests
+from pypsrp.wsman import requests
 from spnego.exceptions import NoCredentialError, OperationNotAvailableError
 from tqdm import tqdm
 
@@ -50,6 +50,7 @@ except ImportError:
 
 
 from evil_winrm_py import __version__
+from evil_winrm_py.pypsrp_ewp.wsman import WSManEWP
 
 # --- Constants ---
 LOG_PATH = Path.cwd().joinpath("evil_winrm_py.log")
@@ -995,7 +996,7 @@ def main():
             + RESET
         )
 
-        with WSMan(
+        with WSManEWP(
             server=args.ip,
             port=args.port,
             auth=auth,
