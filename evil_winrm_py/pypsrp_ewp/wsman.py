@@ -65,6 +65,7 @@ class WSManEWP(WSMan):
         read_timeout: int = 30,
         reconnection_retries: int = 0,
         reconnection_backoff: float = 2.0,
+        user_agent: str = "Microsoft WinRM Client",
         **kwargs: typing.Any,
     ) -> None:
         """
@@ -140,6 +141,10 @@ class WSManEWP(WSMan):
                 building the server SPN
             negotiate_service: Override the service used when building the
                 server SPN, default='WSMAN'
+
+            # custom user-agent header
+            user_agent: The user agent to use for the HTTP requests, this
+                defaults to 'Microsoft WinRM Client'
         """
         log.debug(
             "Initialising WSMan class with maximum envelope size of %d "
@@ -164,6 +169,7 @@ class WSManEWP(WSMan):
             read_timeout,
             reconnection_retries,
             reconnection_backoff,
+            user_agent,
             **kwargs,
         )
         self.max_envelope_size = max_envelope_size
@@ -209,6 +215,7 @@ class _TransportHTTPEWP(_TransportHTTP):
         read_timeout: int = 30,
         reconnection_retries: int = 0,
         reconnection_backoff: float = 2.0,
+        user_agent: str = "Microsoft WinRM Client",
         **kwargs: typing.Any,
     ) -> None:
         self.server = server
@@ -229,6 +236,7 @@ class _TransportHTTPEWP(_TransportHTTP):
         self.read_timeout = read_timeout
         self.reconnection_retries = reconnection_retries
         self.reconnection_backoff = reconnection_backoff
+        self.user_agent = user_agent
 
         # determine the message encryption logic
         if encryption not in ["auto", "always", "never"]:
@@ -344,7 +352,7 @@ class _TransportHTTPEWP(_TransportHTTP):
         self._suppress_library_warnings()
 
         session = requests.Session()
-        session.headers["User-Agent"] = "Microsoft WinRM Client"
+        session.headers["User-Agent"] = self.user_agent
 
         # requests defaults to 'Accept-Encoding: gzip, default' which normally doesn't matter on vanila WinRM but for
         # Exchange endpoints hosted on IIS they actually compress it with 1 of the 2 algorithms. By explicitly setting
