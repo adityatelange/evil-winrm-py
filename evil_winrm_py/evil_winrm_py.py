@@ -822,7 +822,11 @@ def main():
             __version__
         )
     )
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        epilog="For more information about this project, visit https://github.com/adityatelange/evil-winrm-py"
+        "\nFor user guide, visit https://github.com/adityatelange/evil-winrm-py/blob/main/docs/usage.md",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
 
     parser.add_argument(
         "-i",
