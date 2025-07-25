@@ -20,21 +20,26 @@ I also wanted to learn more about winrm and its internals, so this project will 
 ## Features
 
 - Execute commands on remote Windows machines via an interactive shell.
-- Support for NTLM authentication.
-- Support for Pass-the-Hash authentication.
-- Support for Certificate authentication.
-- Support for Kerberos authentication with SPN (Service Principal Name) prefix and hostname options.
-- Support for SSL to secure communication with the remote host.
-- Support for custom WSMan URIs.
 - Download files from the remote host to the local machine.
 - Upload files from the local machine to the remote host.
-- Auto-complete local and remote file paths with tab completion.
-- Support for paths with spaces using quotes.
+- Progress bar for file transfers with speed and time estimation.
+- Stable and reliable file transfer including support for large files with MD5 checksum verification.
+- Auto-complete local and remote file paths (also the ones which have spaces) with `Tab` completion.
 - Enable logging and debugging for better traceability.
-- Navigate command history using up/down arrow keys.
-- Display colorized output for improved readability..
+- Navigate command history using `up`/`down` arrow keys.
+- Display colorized output for improved readability.
 - Lightweight and Python-based for ease of use.
-- Keyboard Interrupt (Ctrl+C) support to terminate long-running commands gracefully.
+- Keyboard Interrupt (Ctrl+C / Ctrl+D) support to terminate long-running commands gracefully.
+
+Includes support for:
+
+- NTLM authentication.
+- Pass-the-Hash authentication.
+- Certificate authentication.
+- Kerberos authentication with custom SPN prefix and hostname options.
+- SSL to secure communication with the remote host.
+- custom WSMan URIs.
+- custom user agent for the WinRM client.
 
 Detailed documentation can be found in the [docs](https://github.com/adityatelange/evil-winrm-py/blob/main/docs) directory.
 
