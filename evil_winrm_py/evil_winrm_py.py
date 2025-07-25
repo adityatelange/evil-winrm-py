@@ -882,6 +882,7 @@ def main():
     if is_kerb_available:
         if args.kerberos:
             auth = "kerberos"
+            args.spn_prefix = args.spn_prefix or "http"  # can also be cifs, ldap, HOST
             # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
             # example: export KRB5CCNAME=/tmp/krb5cc_1000
             # example: export KRB5_CONFIG=/etc/krb5.conf
