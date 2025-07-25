@@ -233,4 +233,12 @@ class _TransportHTTPEWP(_TransportHTTP):
 
         request = requests.Request("POST", self.endpoint, data=payload, headers=headers)
         prep_request = self.session.prepare_request(request)
-        return self._send_request(prep_request)
+        try:
+            return self._send_request(prep_request)
+        except WinRMTransportError as err:
+            if err.code == 400:
+                log.debug("Session invalid, resetting session")
+                self.session = None  # reset the session so we can retry
+                return self.send(message)
+            else:
+                raise
