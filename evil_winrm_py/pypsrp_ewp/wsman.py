@@ -249,7 +249,7 @@ class _TransportHTTPEWP(_TransportHTTP):
         self._suppress_library_warnings()
 
         session = requests.Session()
-        session.headers["User-Agent"] = "Python PSRP Client"
+        session.headers["User-Agent"] = "Microsoft WinRM Client"
 
         # requests defaults to 'Accept-Encoding: gzip, default' which normally doesn't matter on vanila WinRM but for
         # Exchange endpoints hosted on IIS they actually compress it with 1 of the 2 algorithms. By explicitly setting
