@@ -17,6 +17,7 @@ from pypsrp._utils import get_hostname
 from pypsrp.encryption import WinRMEncryption
 from pypsrp.exceptions import WinRMTransportError
 from pypsrp.wsman import NAMESPACES, WSMan, _TransportHTTP, requests
+from urllib3.util.retry import Retry
 
 try:
     from requests_credssp import HttpCredSSPAuth
@@ -242,3 +243,75 @@ class _TransportHTTPEWP(_TransportHTTP):
                 return self.send(message)
             else:
                 raise
+
+    def _build_session(self) -> requests.Session:
+        log.debug("Building requests session with auth %s" % self.auth)
+        self._suppress_library_warnings()
+
+        session = requests.Session()
+        session.headers["User-Agent"] = "Python PSRP Client"
+
+        # requests defaults to 'Accept-Encoding: gzip, default' which normally doesn't matter on vanila WinRM but for
+        # Exchange endpoints hosted on IIS they actually compress it with 1 of the 2 algorithms. By explicitly setting
+        # identity we are telling the server not to transform (compress) the data using the HTTP methods which we don't
+        # support. https://tools.ietf.org/html/rfc7231#section-5.3.4
+        session.headers["Accept-Encoding"] = "identity"
+
+        # get the env requests settings
+        session.trust_env = True
+        settings = session.merge_environment_settings(
+            url=self.endpoint, proxies={}, stream=None, verify=None, cert=None
+        )
+
+        # set the proxy config
+        session.proxies = settings["proxies"]
+        proxy_key = "https" if self.ssl else "http"
+        if self.proxy is not None:
+            session.proxies = {
+                proxy_key: self.proxy,
+            }
+        elif self.no_proxy:
+            session.proxies = {
+                proxy_key: False,  # type: ignore[dict-item] # A boolean is expected here
+            }
+
+        # Retry on connection errors, with a backoff factor
+        retry_kwargs = {
+            "total": self.reconnection_retries,
+            "connect": self.reconnection_retries,
+            "status": self.reconnection_retries,
+            "read": 0,
+            "backoff_factor": self.reconnection_backoff,
+            "status_forcelist": (425, 429, 503),
+        }
+        try:
+            retries = Retry(**retry_kwargs)
+        except TypeError:
+            # Status was added in urllib3 >= 1.21 (Requests >= 2.14.0), remove
+            # the status retry counter and try again. The user should upgrade
+            # to a newer version
+            log.warning(
+                "Using an older requests version that without support for status retries, ignoring.",
+                exc_info=True,
+            )
+            del retry_kwargs["status"]
+            retries = Retry(**retry_kwargs)
+
+        session.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
+        session.mount("https://", requests.adapters.HTTPAdapter(max_retries=retries))
+
+        # set cert validation config
+        session.verify = self.cert_validation
+
+        # if cert_validation is a bool (no path specified), not False and there
+        # are env settings for verification, set those env settings
+        if (
+            isinstance(self.cert_validation, bool)
+            and self.cert_validation
+            and settings["verify"] is not None
+        ):
+            session.verify = settings["verify"]
+
+        build_auth = getattr(self, "_build_auth_%s" % self.auth)
+        build_auth(session)
+        return session
