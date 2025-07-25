@@ -13,7 +13,22 @@ import typing
 import uuid
 import xml.etree.ElementTree as ET
 
-from pypsrp.wsman import NAMESPACES, WSMan, _TransportHTTP
+from pypsrp._utils import get_hostname
+from pypsrp.encryption import WinRMEncryption
+from pypsrp.exceptions import WinRMTransportError
+from pypsrp.wsman import NAMESPACES, WSMan, _TransportHTTP, requests
+
+try:
+    from requests_credssp import HttpCredSSPAuth
+except ImportError as err:  # pragma: no cover
+    _requests_credssp_import_error = (
+        "Cannot use CredSSP auth as requests-credssp is not installed: %s" % err
+    )
+
+    class HttpCredSSPAuth(object):  # type: ignore[no-redef] # https://github.com/python/mypy/issues/1153
+        def __init__(self, *args, **kwargs):
+            raise ImportError(_requests_credssp_import_error)
+
 
 log = logging.getLogger(__name__)
 
@@ -125,7 +140,7 @@ class WSManEWP(WSMan):
         self.session_id = str(uuid.uuid4())
         self.locale = locale
         self.data_locale = self.locale if data_locale is None else data_locale
-        self.transport = _TransportHTTP(
+        self.transport = _TransportHTTPEWP(
             server,
             port,
             username,
@@ -164,3 +179,58 @@ class WSManEWP(WSMan):
         # update_max_envelope_size() function can be called and it will gather
         # this information for you.
         self.max_payload_size = self._calc_envelope_size(max_envelope_size)
+
+
+class _TransportHTTPEWP(_TransportHTTP):
+    """Override _TransportHTTP"""
+
+    def send(self, message: bytes) -> bytes:
+        hostname = get_hostname(self.endpoint)
+        if self.session is None:
+            self.session = self._build_session()
+
+            # need to send an initial blank message to setup the security
+            # context required for encryption
+            if self.wrap_required:
+                request = requests.Request("POST", self.endpoint, data=None)
+                prep_request = self.session.prepare_request(request)
+                self._send_request(prep_request)
+
+                protocol = WinRMEncryption.SPNEGO
+                if isinstance(self.session.auth, HttpCredSSPAuth):
+                    protocol = WinRMEncryption.CREDSSP
+                elif self.session.auth.contexts[hostname].response_auth_header == "kerberos":  # type: ignore[union-attr] # This should not happen
+                    # When Kerberos (not Negotiate) was used, we need to send a special protocol value and not SPNEGO.
+                    protocol = WinRMEncryption.KERBEROS
+
+                self.encryption = WinRMEncryption(self.session.auth.contexts[hostname], protocol)  # type: ignore[union-attr] # This should not happen
+
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug("Sending message: %s" % message.decode("utf-8"))
+        # for testing, keep commented out
+        # self._test_messages.append({"request": message.decode('utf-8'),
+        #                             "response": None})
+
+        headers = self.session.headers
+        if self.wrap_required:
+            content_type, payload = self.encryption.wrap_message(message)  # type: ignore[union-attr] # This should not happen
+            protocol = (
+                self.encryption.protocol if self.encryption else WinRMEncryption.SPNEGO
+            )
+            type_header = '%s;protocol="%s";boundary="Encrypted Boundary"' % (
+                content_type,
+                protocol,
+            )
+            headers.update(
+                {
+                    "Content-Type": type_header,
+                    "Content-Length": str(len(payload)),
+                }
+            )
+        else:
+            payload = message
+            headers["Content-Type"] = "application/soap+xml;charset=UTF-8"
+
+        request = requests.Request("POST", self.endpoint, data=payload, headers=headers)
+        prep_request = self.session.prepare_request(request)
+        return self._send_request(prep_request)
