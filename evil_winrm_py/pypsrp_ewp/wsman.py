@@ -16,7 +16,14 @@ import xml.etree.ElementTree as ET
 from pypsrp._utils import get_hostname
 from pypsrp.encryption import WinRMEncryption
 from pypsrp.exceptions import WinRMTransportError
-from pypsrp.wsman import NAMESPACES, WSMan, _TransportHTTP, requests
+from pypsrp.wsman import (
+    AUTH_KWARGS,
+    NAMESPACES,
+    SUPPORTED_AUTHS,
+    WSMan,
+    _TransportHTTP,
+    requests,
+)
 from urllib3.util.retry import Retry
 
 try:
@@ -184,6 +191,94 @@ class WSManEWP(WSMan):
 
 class _TransportHTTPEWP(_TransportHTTP):
     """Override _TransportHTTP"""
+
+    def __init__(
+        self,
+        server: str,
+        port: typing.Optional[int] = None,
+        username: typing.Optional[str] = None,
+        password: typing.Optional[str] = None,
+        ssl: bool = True,
+        path: str = "wsman",
+        auth: str = "negotiate",
+        cert_validation: bool = True,
+        connection_timeout: int = 30,
+        encryption: str = "auto",
+        proxy: typing.Optional[str] = None,
+        no_proxy: bool = False,
+        read_timeout: int = 30,
+        reconnection_retries: int = 0,
+        reconnection_backoff: float = 2.0,
+        **kwargs: typing.Any,
+    ) -> None:
+        self.server = server
+        self.port = port if port is not None else (5986 if ssl else 5985)
+        self.username = username
+        self.password = password
+        self.ssl = ssl
+        self.path = path
+
+        if auth not in SUPPORTED_AUTHS:
+            raise ValueError(
+                "The specified auth '%s' is not supported, "
+                "please select one of '%s'" % (auth, ", ".join(SUPPORTED_AUTHS))
+            )
+        self.auth = auth
+        self.cert_validation = cert_validation
+        self.connection_timeout = connection_timeout
+        self.read_timeout = read_timeout
+        self.reconnection_retries = reconnection_retries
+        self.reconnection_backoff = reconnection_backoff
+
+        # determine the message encryption logic
+        if encryption not in ["auto", "always", "never"]:
+            raise ValueError(
+                "The encryption value '%s' must be auto, always, or never" % encryption
+            )
+        enc_providers = ["credssp", "kerberos", "negotiate", "ntlm"]
+        if ssl:
+            # msg's are automatically encrypted with TLS, we only want message
+            # encryption if always was specified
+            self.wrap_required = encryption == "always"
+            if self.wrap_required and self.auth not in enc_providers:
+                raise ValueError(
+                    "Cannot use message encryption with auth '%s', either set "
+                    "encryption='auto' or use one of the following auth "
+                    "providers: %s" % (self.auth, ", ".join(enc_providers))
+                )
+        else:
+            # msg's should always be encrypted when not using SSL, unless the
+            # user specifies to never encrypt
+            self.wrap_required = not encryption == "never"
+            if self.wrap_required and self.auth not in enc_providers:
+                raise ValueError(
+                    "Cannot use message encryption with auth '%s', either set "
+                    "encryption='never', use ssl=True or use one of the "
+                    "following auth providers: %s"
+                    % (self.auth, ", ".join(enc_providers))
+                )
+        self.encryption: typing.Optional[WinRMEncryption] = None
+
+        self.proxy = proxy
+        self.no_proxy = no_proxy
+
+        self.certificate_key_pem: typing.Optional[str] = None
+        self.certificate_pem: typing.Optional[str] = None
+        for kwarg_list in AUTH_KWARGS.values():
+            for kwarg in kwarg_list:
+                setattr(self, kwarg, kwargs.get(kwarg, None))
+
+        self.endpoint = self._create_endpoint(
+            self.ssl, self.server, self.port, self.path
+        )
+        log.debug(
+            "Initialising HTTP transport for endpoint: %s, user: %s, "
+            "auth: %s" % (self.endpoint, self.username, self.auth)
+        )
+        self.session: typing.Optional[requests.Session] = None
+
+        # used when building tests, keep commented out
+        # self._test_messages = []
 
     def send(self, message: bytes) -> bytes:
         hostname = get_hostname(self.endpoint)
