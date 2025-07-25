@@ -862,6 +862,11 @@ def main():
         help="local path to certificate PEM file",
     )
     parser.add_argument("--uri", default="wsman", help="wsman URI (default: /wsman)")
+    parser.add_argument(
+        "--ua",
+        default="Microsoft WinRM Client",
+        help='user agent for the WinRM client (default: "Microsoft WinRM Client")',
+    )
     parser.add_argument("--ssl", action="store_true", help="use ssl")
     parser.add_argument(
         "--port", type=int, default=5985, help="remote host port (default 5985)"
@@ -985,6 +990,7 @@ def main():
             negotiate_hostname_override=args.spn_hostname,
             certificate_key_pem=args.priv_key_pem,
             certificate_pem=args.cert_pem,
+            user_agent=args.ua,
         ) as wsman:
             with RunspacePool(wsman) as r_pool:
                 interactive_shell(r_pool)
