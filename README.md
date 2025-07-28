@@ -58,7 +58,7 @@ sudo apt install gcc python3-dev libkrb5-dev krb5-pkinit
 
 ```bash
 pip install evil-winrm-py
-pip install evil-winrm-py[kerberos] # for kerberos support on Linux
+pip install 'evil-winrm-py[kerberos]' # for kerberos support on Linux
 
 # Note: building gssapi and krb5 packages may take some time, so be patient.
 ```
