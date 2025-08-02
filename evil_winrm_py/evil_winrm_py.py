@@ -63,6 +63,7 @@ MENU_COMMANDS = [
     "clear",
     "exit",
 ]
+COMMAND_SUGGESTIONS = []
 
 # --- Colors ---
 # ANSI escape codes for colored output
@@ -244,7 +245,7 @@ class CommandPathCompleter(Completer):
         tokens = text_before_cursor.split(maxsplit=1)
 
         if not tokens:  # Empty input, suggest all commands
-            for cmd_sugg in MENU_COMMANDS:
+            for cmd_sugg in MENU_COMMANDS + COMMAND_SUGGESTIONS:
                 yield Completion(cmd_sugg, start_position=0, display=cmd_sugg)
             return
 
@@ -254,7 +255,7 @@ class CommandPathCompleter(Completer):
         # There's only one token and no trailing space.
         if len(tokens) == 1 and not text_before_cursor.endswith(" "):
             # User is typing the command, -> "downl"
-            for cmd_sugg in MENU_COMMANDS:
+            for cmd_sugg in MENU_COMMANDS + COMMAND_SUGGESTIONS:
                 if cmd_sugg.startswith(command_typed_part):
                     yield Completion(
                         cmd_sugg + " ",  # Full suggested command
@@ -733,6 +734,17 @@ def load_ps(r_pool: RunspacePool, local_path: str):
     try:
         with open(local_path, "r") as script_file:
             script = script_file.read()
+            # Remove block comments (<#...#>) to avoid matching commented-out functions
+            content = re.sub(r"<#.*?#>", "", script, flags=re.DOTALL)
+            # Find all function names in the script
+            pattern = r"function\s+([a-zA-Z0-9_-]+)\s*(?={|$)"
+            function_names = re.findall(pattern, content, re.MULTILINE)
+            global COMMAND_SUGGESTIONS
+            # Update the command suggestions with the function names
+            for func in function_names:
+                if func not in COMMAND_SUGGESTIONS:
+                    COMMAND_SUGGESTIONS += [func]
+
         ps.add_script(f". {{ {script} }}")  # Dot sourcing the script
         ps.begin_invoke()
 
