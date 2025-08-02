@@ -25,6 +25,7 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Progress bar for file transfers with speed and time estimation.
 - Stable and reliable file transfer including support for large files with MD5 checksum verification.
 - Auto-complete local and remote file paths (also the ones which have spaces) with `Tab` completion.
+- Load PowerShell functions from local scripts into the interactive shell. 🆕
 - Enable logging and debugging for better traceability.
 - Navigate command history using `up`/`down` arrow keys.
 - Display colorized output for improved readability.
@@ -135,6 +136,7 @@ evil-winrm-py -i 192.168.1.100 -u Administrator -p P@ssw0rd --ssl
 Menu:
 [+] upload <local_path> <remote_path>                       - Upload a file
 [+] download <remote_path> <local_path>                     - Download a file
+[+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
 [+] menu                                                    - Show this menu
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell

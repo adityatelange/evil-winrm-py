@@ -140,6 +140,7 @@ Inside the interactive shell, you can use the following commands:
 Menu:
 [+] upload <local_path> <remote_path>                       - Upload a file
 [+] download <remote_path> <local_path>                     - Download a file
+[+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
 [+] menu                                                    - Show this menu
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell
@@ -155,6 +156,24 @@ evil-winrm-py PS C:\Users\Administrator\Documents> upload <local_path> <remote_p
 
 ```
 evil-winrm-py PS C:\Users\Administrator\Documents> download <remote_path> <local_path>
+```
+
+### Loading PowerShell Scripts
+
+You can load PowerShell functions from a local script file into the interactive shell using the `loadps` command. This allows you to use custom PowerShell functions defined in your script.
+
+This can be helpful when using tools like `PowerView` or `PowerUp` that provide a set of PowerShell functions for post-exploitation tasks.
+
+```bash
+evil-winrm-py PS C:\Users\Administrator\Documents> loadps <local_path>.ps1
+```
+
+These functions will be added to Command Suggestions so you can use them directly using the `Tab` key for auto-completion.
+
+The help command can be used to get more information about the available commands in the interactive shell.
+
+```bash
+evil-winrm-py PS C:\Users\Administrator\Documents> Get-Help <LoadedFunctionName> # or help <LoadedFunctionName>
 ```
 
 ## Additional Options
