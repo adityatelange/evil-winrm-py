@@ -387,6 +387,45 @@ class CommandPathCompleter(Completer):
             else:
                 # More than 2 arguments, e.g., "download remote_path local_path extra_arg"
                 pass
+        elif actual_command_name == "loadps":
+            # syntax: loadps <local_path>
+            num_args_present = len(args)
+
+            if num_args_present == 0:
+                # User typed "loadps "
+                # Completing the 1st argument (local_path), currently empty
+                current_arg_text_being_completed = ""
+                directory_prefix, partial_name = get_directory_and_partial_name(
+                    current_arg_text_being_completed, sep=os.sep
+                )
+                suggestions = get_local_path_suggestions(directory_prefix, partial_name)
+            elif num_args_present == 1:
+                # We have "loadps arg1" or "loadps local_path "
+                if path_typed_segment.endswith(" "):
+                    # 1st argument (local_path) is complete, currently empty.
+                    current_arg_text_being_completed = ""
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        current_arg_text_being_completed, sep=os.sep
+                    )
+                    suggestions = get_local_path_suggestions(
+                        directory_prefix, partial_name
+                    )
+                else:
+                    # Still completing the 1st argument (local_path)
+                    current_arg_text_being_completed = path_being_completed = args[0]
+                    if path_being_completed.startswith('"'):
+                        path_being_completed = current_arg_text_being_completed.strip(
+                            '"'
+                        )
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        path_being_completed, sep=os.sep
+                    )
+                    suggestions = get_local_path_suggestions(
+                        directory_prefix, partial_name
+                    )
+            else:
+                # More than 1 argument, e.g., "loadps local_path extra_arg"
+                pass
         else:
             if actual_command_name == "cd":
                 dirs_only = True
