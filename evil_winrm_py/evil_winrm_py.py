@@ -931,13 +931,6 @@ def main():
             print(RED + "[-] Invalid NTLM hash format." + RESET)
             sys.exit(1)
 
-    if args.no_pass:
-        args.password = None
-    elif not args.password:
-        args.password = prompt("Password: ", is_password=True)
-        if not args.password:
-            args.password = None
-
     if args.uri:
         if args.uri.startswith("/"):
             args.uri = args.uri.lstrip("/")
@@ -969,6 +962,13 @@ def main():
     # --- Initialize WinRM Session ---
     log.info("--- Evil-WinRM-Py v{} started ---".format(__version__))
     try:
+        if args.no_pass:
+            args.password = None
+        elif not args.password:
+            args.password = prompt("Password: ", is_password=True)
+            if not args.password:
+                args.password = None
+
         log.info("Connecting to {}:{} as {}".format(args.ip, args.port, args.user))
         print(
             BLUE
