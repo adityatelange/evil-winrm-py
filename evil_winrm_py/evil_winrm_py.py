@@ -408,7 +408,9 @@ class CommandPathCompleter(Completer):
                 directory_prefix, partial_name = get_directory_and_partial_name(
                     current_arg_text_being_completed, sep=os.sep
                 )
-                suggestions = get_local_path_suggestions(directory_prefix, partial_name)
+                suggestions = get_local_path_suggestions(
+                    directory_prefix, partial_name, extension=".ps1"
+                )
             elif num_args_present == 1:
                 # We have "loadps arg1" or "loadps local_path "
                 if path_typed_segment.endswith(" "):
@@ -418,7 +420,7 @@ class CommandPathCompleter(Completer):
                         current_arg_text_being_completed, sep=os.sep
                     )
                     suggestions = get_local_path_suggestions(
-                        directory_prefix, partial_name
+                        directory_prefix, partial_name, extension=".ps1"
                     )
                 else:
                     # Still completing the 1st argument (local_path)
@@ -431,7 +433,7 @@ class CommandPathCompleter(Completer):
                         path_being_completed, sep=os.sep
                     )
                     suggestions = get_local_path_suggestions(
-                        directory_prefix, partial_name
+                        directory_prefix, partial_name, extension=".ps1"
                     )
             else:
                 # More than 1 argument, e.g., "loadps local_path extra_arg"
@@ -731,7 +733,7 @@ def load_ps(r_pool: RunspacePool, local_path: str):
     try:
         with open(local_path, "r") as script_file:
             script = script_file.read()
-        ps.add_script(f". {{ {script} }}") # Dot sourcing the script
+        ps.add_script(f". {{ {script} }}")  # Dot sourcing the script
         ps.begin_invoke()
 
         while ps.state == PSInvocationState.RUNNING:
