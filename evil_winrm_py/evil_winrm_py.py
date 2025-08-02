@@ -32,7 +32,7 @@ from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
 from pypsrp.powershell import PowerShell, RunspacePool
 from pypsrp.wsman import requests
-from spnego.exceptions import NoCredentialError, OperationNotAvailableError
+from spnego.exceptions import NoCredentialError, OperationNotAvailableError, SpnegoError
 from tqdm import tqdm
 
 # check if kerberos is installed
@@ -994,6 +994,8 @@ def main():
         ) as wsman:
             with RunspacePool(wsman) as r_pool:
                 interactive_shell(r_pool)
+    except (KeyboardInterrupt, EOFError):
+        sys.exit(0)
     except WinRMTransportError as wte:
         print(RED + "[-] WinRM transport error: {}".format(wte) + RESET)
         log.error("WinRM transport error: {}".format(wte))
@@ -1014,7 +1016,7 @@ def main():
         print(RED + "[-] Kerberos error: {}".format(ke) + RESET)
         log.error("Kerberos error: {}".format(ke))
         sys.exit(1)
-    except (OperationNotAvailableError, NoCredentialError) as se:
+    except (OperationNotAvailableError, NoCredentialError, SpnegoError) as se:
         print(RED + "[-] SpnegoError error: {}".format(se) + RESET)
         log.error("SpnegoError error: {}".format(se))
         sys.exit(1)
