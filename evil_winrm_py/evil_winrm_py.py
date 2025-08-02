@@ -136,7 +136,7 @@ def show_menu() -> None:
         # ("command", "description")
         ("upload <local_path> <remote_path>", "Upload a file"),
         ("download <remote_path> <local_path>", "Download a file"),
-        ("loadps <local_path>", "Load PowerShell functions from a script"),
+        ("loadps <local_path>.ps1", "Load PowerShell functions from a local script"),
         ("menu", "Show this menu"),
         ("clear, cls", "Clear the screen"),
         ("exit", "Exit the shell"),
