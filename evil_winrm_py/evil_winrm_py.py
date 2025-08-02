@@ -812,6 +812,21 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     continue
                 local_path = command_parts[1].strip('"')
 
+                if not Path(local_path).exists():
+                    print(
+                        RED
+                        + f"[-] Local PowerShell script '{local_path}' does not exist."
+                        + RESET
+                    )
+                    continue
+                elif not local_path.endswith(".ps1"):
+                    print(
+                        RED
+                        + "[-] Please provide a valid PowerShell script file with .ps1 extension."
+                        + RESET
+                    )
+                    continue
+
                 load_ps(r_pool, local_path)
                 continue
             else:
