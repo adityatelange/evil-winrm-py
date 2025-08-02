@@ -58,6 +58,7 @@ HISTORY_LENGTH = 1000
 MENU_COMMANDS = [
     "upload",
     "download",
+    "loadps",
     "menu",
     "clear",
     "exit",
@@ -134,6 +135,7 @@ def show_menu() -> None:
         # ("command", "description")
         ("upload <local_path> <remote_path>", "Upload a file"),
         ("download <remote_path> <local_path>", "Download a file"),
+        ("loadps <local_path>", "Load PowerShell functions from a script"),
         ("menu", "Show this menu"),
         ("clear, cls", "Clear the screen"),
         ("exit", "Exit the shell"),
@@ -675,6 +677,35 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                 ps.stop()
 
 
+def load_ps(r_pool: RunspacePool, local_path: str):
+    ps = PowerShell(r_pool)
+    try:
+        with open(local_path, "r") as script_file:
+            script = script_file.read()
+        ps.add_script(f". {{ {script} }}") # Dot sourcing the script
+        ps.begin_invoke()
+
+        while ps.state == PSInvocationState.RUNNING:
+            with DelayedKeyboardInterrupt():
+                ps.poll_invoke()
+
+        if ps.streams.error:
+            print(RED + "[-] Failed to load PowerShell script." + RESET)
+            log.error(f"Failed to load PowerShell script '{local_path}'.")
+            for error in ps.streams.error:
+                print(RED + error._to_string + RESET)
+                log.error("Error: {}".format(error._to_string))
+                log.error("\tCategoryInfo: {}".format(error.message))
+                log.error("\tFullyQualifiedErrorId: {}".format(error.fq_error))
+        else:
+            print(GREEN + "[+] PowerShell script loaded successfully." + RESET)
+            log.info(f"PowerShell script '{local_path}' loaded successfully.")
+    except KeyboardInterrupt:
+        if ps.state == PSInvocationState.RUNNING:
+            log.info("Stopping command execution.")
+            ps.stop()
+
+
 def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -773,6 +804,15 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     remote_path = f"{remote_path}{file_name}"
 
                 upload_file(r_pool, str(Path(local_path).resolve()), remote_path)
+                continue
+            elif command_lower.startswith("loadps"):
+                command_parts = quoted_command_split(command)
+                if len(command_parts) < 2:
+                    print(RED + "[-] Usage: loadps <local_path>" + RESET)
+                    continue
+                local_path = command_parts[1].strip('"')
+
+                load_ps(r_pool, local_path)
                 continue
             else:
                 try:
