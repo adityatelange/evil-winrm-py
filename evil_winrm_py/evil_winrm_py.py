@@ -197,13 +197,15 @@ def get_remote_path_suggestions(
     return ps.output
 
 
-def get_local_path_suggestions(directory_prefix: str, partial_name: str) -> list[str]:
+def get_local_path_suggestions(
+    directory_prefix: str, partial_name: str, extension: str = None
+) -> list[str]:
     """
     Returns a list of local path suggestions based on path entered by the user.
+    Optionally filters files by extension (e.g., ".ps1").
     """
     suggestions = []
 
-    # Get all files and directories in the specified path
     try:
         entries = Path(directory_prefix).iterdir()
         for entry in entries:
@@ -212,10 +214,18 @@ def get_local_path_suggestions(directory_prefix: str, partial_name: str) -> list
                     entry = (
                         f"{entry}{os.sep}"  # Append a trailing slash for directories
                     )
-                suggestions.append(str(entry))
+                    suggestions.append(str(entry))
+                else:
+                    if (extension is None) or (
+                        entry.suffix.lower() == extension.lower()
+                    ):
+                        suggestions.append(str(entry))
     except (FileNotFoundError, NotADirectoryError, PermissionError):
         pass
     finally:
+        if extension:
+            # Sort suggestions alphabetically, prioritizing those that match the extension
+            return sorted(suggestions, key=lambda x: not x.endswith(extension))
         return suggestions
 
 
