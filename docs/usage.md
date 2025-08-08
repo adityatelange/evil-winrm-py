@@ -39,7 +39,7 @@ Then, you can run the command without providing a username or password:
 evil-winrm-py -i <IP> --kerberos
 ```
 
-> ![note]
+> [!IMPORTANT]
 > Make sure when you use a cache ticket, the `SPN` i.e `Service principal` is set correctly. The `SPN` is usually in the format of `http/<hostname>` or `cifs/<hostname>`. The hostname should _always_ be in lowercase.
 
 The tool also supports direct authentication (without setting `KRB5CCNAME`) when passing username and password, which will request a ticket for the user and use it for authentication.
