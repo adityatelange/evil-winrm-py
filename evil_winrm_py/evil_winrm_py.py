@@ -1180,9 +1180,14 @@ def main():
         print(RED + "[-] {}".format(ke) + RESET)
         log.error("Kerberos error: {}".format(ke))
         sys.exit(1)
-    except (OperationNotAvailableError, NoCredentialError, SpnegoError) as se:
+    except (OperationNotAvailableError, NoCredentialError) as se:
         print(RED + "[-] {}".format(se._context_message) + RESET)
         print(RED + "[-] {}".format(se._BASE_MESSAGE) + RESET)
+        log.error("SpnegoError error: {}".format(se))
+        sys.exit(1)
+    except SpnegoError as se:
+        print(RED + "[-] {}".format(se._context_message) + RESET)
+        print(RED + "[-] {}".format(se.message) + RESET)
         log.error("SpnegoError error: {}".format(se))
         sys.exit(1)
     except Exception as e:
