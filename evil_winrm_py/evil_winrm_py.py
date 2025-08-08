@@ -1027,33 +1027,6 @@ def main():
         global RESET, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, BOLD
         RESET = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = BOLD = ""
 
-    if is_kerb_available:
-        if args.kerberos:
-            auth = "kerberos"
-            args.spn_prefix = args.spn_prefix or "http"  # can also be cifs, ldap, HOST
-            if not args.user:
-                try:
-                    cred = gssapi.creds.Credentials(gssapi.raw.Creds())
-                    username = cred.name
-                except gssapi.raw.exceptions.MissingCredentialsError:
-                    print(
-                        MAGENTA
-                        + "[%] Kerberos cached credentials should be set using 'KRB5CCNAME' environment variable."
-                        + RESET
-                    )
-            # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
-            # example: export KRB5CCNAME=/tmp/krb5cc_1000
-            # example: export KRB5_CONFIG=/etc/krb5.conf
-        elif args.spn_prefix or args.spn_hostname:
-            args.spn_prefix = args.spn_hostname = None  # Reset to None
-            print(
-                MAGENTA
-                + "[%] SPN prefix/hostname is only used with Kerberos authentication."
-                + RESET
-            )
-    else:
-        args.spn_prefix = args.spn_hostname = None
-
     if args.cert_pem or args.priv_key_pem:
         auth = "certificate"
         encryption = "never"
@@ -1121,6 +1094,36 @@ def main():
     # --- Initialize WinRM Session ---
     log.info("--- Evil-WinRM-Py v{} started ---".format(__version__))
     try:
+        if is_kerb_available:
+            if args.kerberos:
+                auth = "kerberos"
+                args.spn_prefix = (
+                    args.spn_prefix or "http"
+                )  # can also be cifs, ldap, HOST
+                if not args.user:
+                    try:
+                        cred = gssapi.creds.Credentials(gssapi.raw.Creds())
+                        username = cred.name
+                    except gssapi.raw.exceptions.MissingCredentialsError:
+                        print(
+                            MAGENTA
+                            + "[%] No credentials cache found for Kerberos authentication."
+                            + RESET
+                        )
+                        sys.exit(1)
+                # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
+                # example: export KRB5CCNAME=/tmp/krb5cc_1000
+                # example: export KRB5_CONFIG=/etc/krb5.conf
+            elif args.spn_prefix or args.spn_hostname:
+                args.spn_prefix = args.spn_hostname = None  # Reset to None
+                print(
+                    MAGENTA
+                    + "[%] SPN prefix/hostname is only used with Kerberos authentication."
+                    + RESET
+                )
+        else:
+            args.spn_prefix = args.spn_hostname = None
+
         if args.no_pass:
             args.password = None
         elif args.user and not args.password:
