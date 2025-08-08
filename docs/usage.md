@@ -33,10 +33,19 @@ export KRB5_CONFIG=/path/to/your/krb5.conf
 # By default, the Kerberos configuration file is located at `/etc/krb5.conf` on Unix-like systems.
 ```
 
-Then, you can run the command without a password:
+Then, you can run the command without providing a username or password:
 
 ```bash
-evil-winrm-py -i <IP> -u <USERNAME> --kerberos --no-pass
+evil-winrm-py -i <IP> --kerberos
+```
+
+> ![note]
+> Make sure when you use a cache ticket, the `SPN` i.e `Service principal` is set correctly. The `SPN` is usually in the format of `http/<hostname>` or `cifs/<hostname>`. The hostname should _always_ be in lowercase.
+
+The tool also supports direct authentication (without setting `KRB5CCNAME`) when passing username and password, which will request a ticket for the user and use it for authentication.
+
+```bash
+evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
 ```
 
 Optionally, you can specify the Kerberos realm and SPN prefix/hostname
@@ -120,12 +129,14 @@ export KRB5_TRACE=/dev/stdout evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> 
 
 Once you have successfully authenticated, you will be dropped into an interactive shell where you can execute commands on the remote Windows machine.
 
-```
-        ▘▜      ▘
-    █▌▌▌▌▐ ▄▖▌▌▌▌▛▌▛▘▛▛▌▄▖▛▌▌▌
-    ▙▖▚▘▌▐▖  ▚▚▘▌▌▌▌ ▌▌▌  ▙▌▙▌
-                          ▌ ▄▌ v1.0.0
-[*] Connecting to 192.168.1.100 as Administrator
+```bash
+          _ _            _
+  _____ _(_| |_____ __ _(_)_ _  _ _ _ __ ___ _ __ _  _
+ / -_\ V | | |___\ V  V | | ' \| '_| '  |___| '_ | || |
+ \___|\_/|_|_|    \_/\_/|_|_||_|_| |_|_|_|  | .__/\_, |
+                                            |_|   |__/  v1.3.0
+
+[*] Connecting to '192.168.1.100' as 'Administrator'
 evil-winrm-py PS C:\Users\Administrator\Documents> █
 ```
 
@@ -136,7 +147,7 @@ If you want to cancel a command that is currently running, you can use `Ctrl+C`.
 
 Inside the interactive shell, you can use the following commands:
 
-```
+```bash
 Menu:
 [+] upload <local_path> <remote_path>                       - Upload a file
 [+] download <remote_path> <local_path>                     - Download a file
@@ -150,11 +161,11 @@ Menu:
 
 You can upload and download files using the following commands:
 
-```
+```bash
 evil-winrm-py PS C:\Users\Administrator\Documents> upload <local_path> <remote_path>
 ```
 
-```
+```bash
 evil-winrm-py PS C:\Users\Administrator\Documents> download <remote_path> <local_path>
 ```
 
