@@ -31,7 +31,7 @@ from prompt_toolkit.shortcuts import clear
 from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
 from pypsrp.powershell import PowerShell, RunspacePool
-from pypsrp.wsman import requests
+from requests.exceptions import ConnectionError
 from spnego.exceptions import NoCredentialError, OperationNotAvailableError, SpnegoError
 from tqdm import tqdm
 
@@ -1121,27 +1121,31 @@ def main():
     except (KeyboardInterrupt, EOFError):
         sys.exit(0)
     except WinRMTransportError as wte:
-        print(RED + "[-] WinRM transport error: {}".format(wte) + RESET)
+        print(RED + "[-] {}".format(wte) + RESET)
         log.error("WinRM transport error: {}".format(wte))
         sys.exit(1)
-    except requests.exceptions.ConnectionError as ce:
-        print(RED + "[-] Connection error: {}".format(ce) + RESET)
+    except ConnectionError as ce:
+        print(
+            RED + "[-] Failed to connect to the remote host: {}:{}"
+            "".format(args.ip, args.port) + RESET
+        )
         log.error("Connection error: {}".format(ce))
         sys.exit(1)
     except AuthenticationError as ae:
-        print(RED + "[-] Authentication failed: {}".format(ae) + RESET)
+        print(RED + "[-] {}".format(ae) + RESET)
         log.error("Authentication failed: {}".format(ae))
         sys.exit(1)
     except WSManFaultError as wfe:
-        print(RED + "[-] WSMan fault error: {}".format(wfe) + RESET)
+        print(RED + "[-] {}".format(wfe) + RESET)
         log.error("WSMan fault error: {}".format(wfe))
         sys.exit(1)
     except Krb5Error as ke:
-        print(RED + "[-] Kerberos error: {}".format(ke) + RESET)
+        print(RED + "[-] {}".format(ke) + RESET)
         log.error("Kerberos error: {}".format(ke))
         sys.exit(1)
     except (OperationNotAvailableError, NoCredentialError, SpnegoError) as se:
-        print(RED + "[-] SpnegoError error: {}".format(se) + RESET)
+        print(RED + "[-] {}".format(se._context_message) + RESET)
+        print(RED + "[-] {}".format(se._BASE_MESSAGE) + RESET)
         log.error("SpnegoError error: {}".format(se))
         sys.exit(1)
     except Exception as e:
