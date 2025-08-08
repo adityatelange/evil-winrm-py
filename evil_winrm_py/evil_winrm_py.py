@@ -794,8 +794,8 @@ def interactive_shell(r_pool: RunspacePool) -> None:
             if not command:
                 continue
 
-            command = command.strip()  # Remove leading/trailing whitespace
-            command_lower = command.lower()
+            # Normalize command input
+            command_lower = str(command).strip().lower()
 
             # Check for exit command
             if command_lower == "exit":
