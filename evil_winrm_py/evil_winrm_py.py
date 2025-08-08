@@ -1087,12 +1087,18 @@ def main():
             if not args.password:
                 args.password = None
 
-        log.info("Connecting to {}:{} as {}".format(args.ip, args.port, args.user))
-        print(
-            BLUE
-            + "[*] Connecting to {}:{} as {}".format(args.ip, args.port, args.user)
-            + RESET
-        )
+        if args.user:
+            log.info(
+                "[*] Connecting to '{}:{}' as '{}'"
+                "".format(args.ip, args.port, args.user, auth)
+            )
+            print(
+                BLUE + "[*] Connecting to '{}:{}' as '{}'"
+                "".format(args.ip, args.port, args.user) + RESET
+            )
+        else:
+            log.info("[*] Connecting to '{}:{}'".format(args.ip, args.port))
+            print(BLUE + "[*] Connecting to '{}:{}'".format(args.ip, args.port) + RESET)
 
         with WSManEWP(
             server=args.ip,
