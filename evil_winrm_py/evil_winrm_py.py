@@ -845,10 +845,14 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 file_name = remote_file.split("\\")[-1]
 
-                if Path(local_path).is_dir() or local_path.endswith(os.sep):
-                    local_path = Path(local_path).resolve().joinpath(file_name)
+                if Path(local_path).expanduser().is_dir() or local_path.endswith(
+                    os.sep
+                ):
+                    local_path = (
+                        Path(local_path).expanduser().resolve().joinpath(file_name)
+                    )
                 else:
-                    local_path = Path(local_path).resolve()
+                    local_path = Path(local_path).expanduser().resolve()
 
                 download_file(r_pool, remote_file, str(local_path))
                 continue
@@ -860,7 +864,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 local_path = command_parts[1].strip('"')
                 remote_path = command_parts[2].strip('"')
 
-                if not Path(local_path).exists():
+                if not Path(local_path).expanduser().exists():
                     print(
                         RED + f"[-] Local file '{local_path}' does not exist." + RESET
                     )
@@ -887,15 +891,16 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     print(RED + "[-] Usage: loadps <local_path>" + RESET)
                     continue
                 local_path = command_parts[1].strip('"')
+                local_path = Path(local_path).expanduser().resolve()
 
-                if not Path(local_path).exists():
+                if not local_path.exists():
                     print(
                         RED
                         + f"[-] Local PowerShell script '{local_path}' does not exist."
                         + RESET
                     )
                     continue
-                elif not local_path.endswith(".ps1"):
+                elif local_path.suffix.lower() != ".ps1":
                     print(
                         RED
                         + "[-] Please provide a valid PowerShell script file with .ps1 extension."
