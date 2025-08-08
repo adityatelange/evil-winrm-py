@@ -207,19 +207,29 @@ def get_local_path_suggestions(
     """
     suggestions = []
 
+    # Expand the tilde to the user's home directory
+    home = str(Path.home())
+
     try:
-        entries = Path(directory_prefix).iterdir()
+        entries = Path(directory_prefix).expanduser().iterdir()
         for entry in entries:
             if entry.match(f"{partial_name}*"):
                 if entry.is_dir():
                     entry = (
                         f"{entry}{os.sep}"  # Append a trailing slash for directories
                     )
+                    if directory_prefix.startswith("~"):
+                        # If the directory prefix starts with ~, replace it with the home directory
+                        entry = str(entry).replace("~", home, 1)
+                    entry = str(entry).replace(home, "~", 1)
                     suggestions.append(str(entry))
                 else:
                     if (extension is None) or (
                         entry.suffix.lower() == extension.lower()
                     ):
+                        if directory_prefix.startswith("~"):
+                            # If the directory prefix starts with ~, replace it with the home directory
+                            entry = str(entry).replace("~", home, 1)
                         suggestions.append(str(entry))
     except (FileNotFoundError, NotADirectoryError, PermissionError):
         pass
