@@ -1036,7 +1036,11 @@ def main():
                     cred = gssapi.creds.Credentials(gssapi.raw.Creds())
                     username = cred.name
                 except gssapi.raw.exceptions.MissingCredentialsError:
-                    pass
+                    print(
+                        MAGENTA
+                        + "[%] Kerberos cached credentials should be set using 'KRB5CCNAME' environment variable."
+                        + RESET
+                    )
             # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
             # example: export KRB5CCNAME=/tmp/krb5cc_1000
             # example: export KRB5_CONFIG=/etc/krb5.conf
