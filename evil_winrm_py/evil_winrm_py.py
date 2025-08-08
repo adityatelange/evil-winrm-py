@@ -1071,12 +1071,22 @@ def main():
                 if not name.startswith("evil_winrm_py"):
                     logging.getLogger(name).disabled = True
         # Set up logging to a file
-        logging.basicConfig(
-            level=level,
-            format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-            filename=LOG_PATH,
-        )
-        print(BLUE + "[*] Logging session to {}".format(LOG_PATH) + RESET)
+        try:
+            logging.basicConfig(
+                level=level,
+                format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+                filename=LOG_PATH,
+            )
+            print(BLUE + "[*] Logging session to {}".format(LOG_PATH) + RESET)
+        except PermissionError as pe:
+            print(
+                RED + "[-] Permission denied to write to log file '{}'."
+                " Please check the permissions or run with elevated privileges.".format(
+                    LOG_PATH
+                )
+                + RESET
+            )
+            log.disabled = True
     else:
         log.disabled = True
 
