@@ -1080,6 +1080,7 @@ def main():
         if args.debug:
             print(BLUE + "[*] Debug logging enabled." + RESET)
             level = logging.DEBUG
+            os.environ["KRB5_TRACE"] = str(LOG_PATH)  # Enable Kerberos trace logging
         else:
             # Disable all loggers except the root logger
             for name in logging.root.manager.loggerDict:
