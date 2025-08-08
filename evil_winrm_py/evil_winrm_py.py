@@ -953,7 +953,7 @@ def main():
         required=True,
         help="remote host IP or hostname",
     )
-    parser.add_argument("-u", "--user", required=True, help="username")
+    parser.add_argument("-u", "--user", help="username")
     parser.add_argument("-p", "--password", help="password")
     parser.add_argument("-H", "--hash", help="nthash")
     parser.add_argument(
@@ -1082,7 +1082,7 @@ def main():
     try:
         if args.no_pass:
             args.password = None
-        elif not args.password:
+        elif args.user and not args.password:
             args.password = prompt("Password: ", is_password=True)
             if not args.password:
                 args.password = None
