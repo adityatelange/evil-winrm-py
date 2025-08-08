@@ -784,7 +784,10 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
     while True:
         try:
-            prompt_text = ANSI(get_prompt(r_pool))
+            try:
+                prompt_text = ANSI(get_prompt(r_pool))
+            except (KeyboardInterrupt, EOFError):
+                return
             command = prompt_session.prompt(
                 prompt_text,
                 completer=completer,
