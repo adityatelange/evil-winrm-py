@@ -22,6 +22,7 @@ import traceback
 from importlib import resources
 from pathlib import Path
 
+import gssapi
 from prompt_toolkit import PromptSession, prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
@@ -1019,6 +1020,7 @@ def main():
     # Set Default values
     auth = "ntlm"  # this can be 'negotiate'
     encryption = "auto"
+    username = args.user
 
     # --- Run checks on provided arguments ---
     if args.no_colors:
@@ -1029,6 +1031,12 @@ def main():
         if args.kerberos:
             auth = "kerberos"
             args.spn_prefix = args.spn_prefix or "http"  # can also be cifs, ldap, HOST
+            if not args.user:
+                try:
+                    cred = gssapi.creds.Credentials(gssapi.raw.Creds())
+                    username = cred.name
+                except gssapi.raw.exceptions.MissingCredentialsError:
+                    pass
             # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
             # example: export KRB5CCNAME=/tmp/krb5cc_1000
             # example: export KRB5_CONFIG=/etc/krb5.conf
@@ -1116,14 +1124,14 @@ def main():
             if not args.password:
                 args.password = None
 
-        if args.user:
+        if username:
             log.info(
                 "[*] Connecting to '{}:{}' as '{}'"
-                "".format(args.ip, args.port, args.user, auth)
+                "".format(args.ip, args.port, username, auth)
             )
             print(
                 BLUE + "[*] Connecting to '{}:{}' as '{}'"
-                "".format(args.ip, args.port, args.user) + RESET
+                "".format(args.ip, args.port, username) + RESET
             )
         else:
             log.info("[*] Connecting to '{}:{}'".format(args.ip, args.port))
