@@ -22,7 +22,6 @@ import traceback
 from importlib import resources
 from pathlib import Path
 
-import gssapi
 from prompt_toolkit import PromptSession, prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
@@ -39,6 +38,7 @@ from tqdm import tqdm
 # check if kerberos is installed
 try:
     from krb5._exceptions import Krb5Error
+    import gssapi
 
     is_kerb_available = True
 except ImportError:
