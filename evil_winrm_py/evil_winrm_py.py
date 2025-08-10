@@ -220,17 +220,16 @@ def get_local_path_suggestions(
                         f"{entry}{os.sep}"  # Append a trailing slash for directories
                     )
                     if directory_prefix.startswith("~"):
-                        # If the directory prefix starts with ~, replace it with the home directory
-                        entry = str(entry).replace("~", home, 1)
-                    entry = str(entry).replace(home, "~", 1)
+                        # If the directory prefix starts with ~, replace home with ~
+                        entry = str(entry).replace(home, "~", 1)
                     suggestions.append(str(entry))
                 else:
                     if (extension is None) or (
                         entry.suffix.lower() == extension.lower()
                     ):
                         if directory_prefix.startswith("~"):
-                            # If the directory prefix starts with ~, replace it with the home directory
-                            entry = str(entry).replace("~", home, 1)
+                            # If the directory prefix starts with ~, replace home with ~
+                            entry = str(entry).replace(home, "~", 1)
                         suggestions.append(str(entry))
     except (FileNotFoundError, NotADirectoryError, PermissionError):
         pass
