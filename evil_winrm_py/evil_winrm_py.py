@@ -38,7 +38,9 @@ from tqdm import tqdm
 # check if kerberos is installed
 try:
     from krb5._exceptions import Krb5Error
-    import gssapi
+    from gssapi.creds import Credentials as GSSAPICredentials
+    from gssapi.raw import Creds as RawCreds
+    from gssapi.exceptions import MissingCredentialsError, ExpiredCredentialsError
 
     is_kerb_available = True
 except ImportError:
@@ -1101,14 +1103,20 @@ def main():
                 )  # can also be cifs, ldap, HOST
                 if not args.user:
                     try:
-                        cred = gssapi.creds.Credentials(gssapi.raw.Creds())
+                        cred = GSSAPICredentials(RawCreds())
                         username = cred.name
-                    except gssapi.raw.exceptions.MissingCredentialsError:
+                    except MissingCredentialsError:
                         print(
                             MAGENTA
                             + "[%] No credentials cache found for Kerberos authentication."
                             + RESET
                         )
+                        sys.exit(1)
+                    except ExpiredCredentialsError as ece:
+                        print(
+                            RED + "[-] The Kerberos credentials have expired. " + RESET
+                        )
+                        log.error("Expired credentials error: {}".format(ece))
                         sys.exit(1)
                 # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
                 # example: export KRB5CCNAME=/tmp/krb5cc_1000
