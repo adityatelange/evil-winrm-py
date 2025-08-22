@@ -263,6 +263,31 @@ class CommandPathCompleter(Completer):
 
         command_typed_part = tokens[0]
 
+        # Handle .\name or ./name as first-token paths (run from current remote directory)
+        if command_typed_part.startswith(".\\") or command_typed_part.startswith("./"):
+            path_being_completed = command_typed_part
+            # strip surrounding quotes if any
+            if path_being_completed.startswith('"') and path_being_completed.endswith(
+                '"'
+            ):
+                path_being_completed = path_being_completed.strip('"')
+            directory_prefix, partial_name = get_directory_and_partial_name(
+                path_being_completed, sep="\\"
+            )
+            suggestions = get_remote_path_suggestions(
+                self.r_pool, directory_prefix, partial_name
+            )
+            for sugg_path in suggestions:
+                text_to_insert_in_prompt = f".\\" + sugg_path
+                if " " in sugg_path:
+                    text_to_insert_in_prompt = f'& ".\\{sugg_path}"'
+                yield Completion(
+                    text_to_insert_in_prompt,
+                    start_position=-len(command_typed_part),
+                    display=sugg_path,
+                )
+            return
+
         # Case 1: Completing the command name itself
         # There's only one token and no trailing space.
         if len(tokens) == 1 and not text_before_cursor.endswith(" "):
