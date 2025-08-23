@@ -24,7 +24,7 @@ evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
 
 If you already have a Kerberos ticket (e.g., from `kinit`), you can use it directly without providing a password.
 
-Specify the `KRB5CCNAME` and `KRB5_CONFIG` environment variables to point to your Kerberos ticket cache and configuration file, respectively. Sample `krb5.conf` file can be found [here](sample/krb5.conf).
+Specify the `KRB5CCNAME` and `KRB5_CONFIG` environment variables to point to your Kerberos ticket cache and configuration file, respectively. Sample `krb5.conf` file can be found [here](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/sample/krb5.conf).
 
 ```bash
 export KRB5CCNAME=/path/to/your/krb5cc_file
