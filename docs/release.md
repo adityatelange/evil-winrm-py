@@ -16,18 +16,26 @@ python3 -m pip install --upgrade twine
 __version__ = "X.Y.Z" # update this to the new version
 ```
 
-## Build
-
-```bash
-python3 -m build
-```
-
-# Sceenshot
+## Sceenshot
 
 Creating screenshots for the README using the [freeze](https://github.com/charmbracelet/freeze) tool.
 
 ```bash
-freeze --execute "evil-winrm-py -h" -o assets/terminal.png --padding 5 --wrap 120 --border.radius 4
+freeze --execute "evil-winrm-py -h" -o assets/terminal.png --padding 5 --border.radius 4 # --wrap 120
+```
+
+Update the screenshot tag in the README file.
+
+```diff
+# File: evil_winrm_py/README.md
+-![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v1.4.0/assets/terminal.png)
++![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v1.4.1/assets/terminal.png)
+```
+
+## Build
+
+```bash
+python3 -m build
 ```
 
 ## Upload

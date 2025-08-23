@@ -1,4 +1,4 @@
-# Development
+# Development Environment Setup
 
 ## Setup
 
@@ -19,7 +19,7 @@ source venv/bin/activate
 Install the required packages:
 
 ```bash
-pip install -r requirements.txt
+pip install pypsrp[kerberos]==0.8.1 prompt_toolkit==3.0.51 tqdm==4.67.1
 ```
 
 ## Create a test file
