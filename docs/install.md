@@ -12,12 +12,14 @@ sudo apt install gcc python3-dev libkrb5-dev krb5-pkinit
 # Optional: krb5-user
 ```
 
+> [!NOTE] > `[kerberos]` is an optional dependency that includes the necessary packages for Kerberos authentication support. If you do not require Kerberos authentication, you can install `evil-winrm-py` without this extra.
+
 ## Using `pip`
 
 You can install the package directly from PyPI using pip:
 
 ```bash
-pip install evil-winrm-py
+pip install evil-winrm-py[kerberos]
 ```
 
 Installing latest development version directly from GitHub:
@@ -31,7 +33,7 @@ pip install git+https://github.com/adityatelange/evil-winrm-py[kerberos]
 For a more isolated installation, you can use pipx:
 
 ```bash
-pipx install evil-winrm-py
+pipx install evil-winrm-py[kerberos]
 ```
 
 Installing latest development version directly from GitHub:
@@ -45,11 +47,11 @@ pipx install git+https://github.com/adityatelange/evil-winrm-py[kerberos]
 If you prefer using `uv`, you can install the package with the following command:
 
 ```bash
-uv tool install evil-winrm-py
+uv tool install evil-winrm-py[kerberos]
 ```
 
 Installing latest development version directly from GitHub:
 
 ```bash
-uv tool git+https://github.com/adityatelange/evil-winrm-py[kerberos]
+uv tool install git+https://github.com/adityatelange/evil-winrm-py[kerberos]
 ```
