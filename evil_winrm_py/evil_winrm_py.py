@@ -778,11 +778,6 @@ def load_ps(r_pool: RunspacePool, local_path: str):
             # Find all function names in the script
             pattern = r"function\s+([a-zA-Z0-9_-]+)\s*(?={|$)"
             function_names = re.findall(pattern, content, re.MULTILINE)
-            global COMMAND_SUGGESTIONS
-            # Update the command suggestions with the function names
-            for func in function_names:
-                if func not in COMMAND_SUGGESTIONS:
-                    COMMAND_SUGGESTIONS += [func]
 
         ps.add_script(f". {{ {script} }}")  # Dot sourcing the script
         ps.begin_invoke()
@@ -802,6 +797,11 @@ def load_ps(r_pool: RunspacePool, local_path: str):
         else:
             print(GREEN + "[+] PowerShell script loaded successfully." + RESET)
             log.info(f"PowerShell script '{local_path}' loaded successfully.")
+            global COMMAND_SUGGESTIONS
+            # Update the command suggestions with the function names
+            for func in function_names:
+                if func not in COMMAND_SUGGESTIONS:
+                    COMMAND_SUGGESTIONS += [func]
     except KeyboardInterrupt:
         if ps.state == PSInvocationState.RUNNING:
             log.info("Stopping command execution.")
