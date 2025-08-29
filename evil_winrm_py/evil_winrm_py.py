@@ -799,9 +799,18 @@ def load_ps(r_pool: RunspacePool, local_path: str):
             log.info(f"PowerShell script '{local_path}' loaded successfully.")
             global COMMAND_SUGGESTIONS
             # Update the command suggestions with the function names
+            new_suggestions = []
             for func in function_names:
                 if func not in COMMAND_SUGGESTIONS:
-                    COMMAND_SUGGESTIONS += [func]
+                    new_suggestions += [func]
+            if new_suggestions:
+                COMMAND_SUGGESTIONS += new_suggestions
+                print(
+                    CYAN
+                    + "[*] New commands available (use TAB to autocomplete):"
+                    + RESET
+                )
+                print(", ".join(new_suggestions))
     except KeyboardInterrupt:
         if ps.state == PSInvocationState.RUNNING:
             log.info("Stopping command execution.")
