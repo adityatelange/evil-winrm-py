@@ -1076,21 +1076,6 @@ def main():
     parser.add_argument("-p", "--password", help="password")
     parser.add_argument("-H", "--hash", help="nthash")
     parser.add_argument(
-        "--no-pass", action="store_true", help="do not prompt for password"
-    )
-    if is_kerb_available:
-        parser.add_argument(
-            "-k", "--kerberos", action="store_true", help="use kerberos authentication"
-        )
-        parser.add_argument(
-            "--spn-prefix",
-            help="specify spn prefix",
-        )
-        parser.add_argument(
-            "--spn-hostname",
-            help="specify spn hostname",
-        )
-    parser.add_argument(
         "--priv-key-pem",
         help="local path to private key PEM file",
     )
@@ -1104,10 +1089,25 @@ def main():
         default="Microsoft WinRM Client",
         help='user agent for the WinRM client (default: "Microsoft WinRM Client")',
     )
-    parser.add_argument("--ssl", action="store_true", help="use ssl")
     parser.add_argument(
         "--port", type=int, default=5985, help="remote host port (default 5985)"
     )
+    if is_kerb_available:
+        parser.add_argument(
+            "--spn-prefix",
+            help="specify spn prefix",
+        )
+        parser.add_argument(
+            "--spn-hostname",
+            help="specify spn hostname",
+        )
+        parser.add_argument(
+            "-k", "--kerberos", action="store_true", help="use kerberos authentication"
+        )
+    parser.add_argument(
+        "--no-pass", action="store_true", help="do not prompt for password"
+    )
+    parser.add_argument("--ssl", action="store_true", help="use ssl")
     parser.add_argument("--log", action="store_true", help="log session to file")
     parser.add_argument("--debug", action="store_true", help="enable debug logging")
     parser.add_argument("--no-colors", action="store_true", help="disable colors")

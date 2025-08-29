@@ -89,11 +89,11 @@ pip uninstall evil-winrm-py
 Details on how to use `evil-winrm-py` can be found in the [Usage Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/usage.md).
 
 ```bash
-usage: evil-winrm-py [-h] -i IP -u USER [-p PASSWORD] [-H HASH] [--no-pass] [-k]
-                     [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME]
+usage: evil-winrm-py [-h] -i IP [-u USER] [-p PASSWORD] [-H HASH]
                      [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI]
-                     [--ua UA] [--ssl] [--port PORT] [--log] [--debug] [--no-colors]
-                     [--version]
+                     [--ua UA] [--port PORT] [--spn-prefix SPN_PREFIX]
+                     [--spn-hostname SPN_HOSTNAME] [-k] [--no-pass] [--ssl] [--log]
+                     [--debug] [--no-colors] [--version]
 
 options:
   -h, --help            show this help message and exit
@@ -102,19 +102,19 @@ options:
   -p, --password PASSWORD
                         password
   -H, --hash HASH       nthash
-  --no-pass             do not prompt for password
-  -k, --kerberos        use kerberos authentication
-  --spn-prefix SPN_PREFIX
-                        specify spn prefix
-  --spn-hostname SPN_HOSTNAME
-                        specify spn hostname
   --priv-key-pem PRIV_KEY_PEM
                         local path to private key PEM file
   --cert-pem CERT_PEM   local path to certificate PEM file
   --uri URI             wsman URI (default: /wsman)
   --ua UA               user agent for the WinRM client (default: "Microsoft WinRM Client")
-  --ssl                 use ssl
   --port PORT           remote host port (default 5985)
+  --spn-prefix SPN_PREFIX
+                        specify spn prefix
+  --spn-hostname SPN_HOSTNAME
+                        specify spn hostname
+  -k, --kerberos        use kerberos authentication
+  --no-pass             do not prompt for password
+  --ssl                 use ssl
   --log                 log session to file
   --debug               enable debug logging
   --no-colors           disable colors
