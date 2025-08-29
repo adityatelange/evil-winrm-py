@@ -26,6 +26,7 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Stable and reliable file transfer including support for large files with MD5 checksum verification.
 - Auto-complete local and remote file paths (also the ones which have spaces) with `Tab` completion.
 - Load PowerShell functions from local scripts into the interactive shell. 🆕
+- Run local PowerShell scripts on the remote host. 🆕
 - Enable logging and debugging for better traceability.
 - Navigate command history using `up`/`down` arrow keys.
 - Display colorized output for improved readability.
