@@ -113,7 +113,7 @@ class DelayedKeyboardInterrupt:
             self.old_handler(*self.signal_received)
 
 
-def run_ps(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
+def run_ps_cmd(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
     """Runs a PowerShell command and returns the output, streams, and error status."""
     log.info("Executing command: {}".format(command))
     ps = PowerShell(r_pool)
@@ -125,7 +125,7 @@ def run_ps(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
 
 def get_prompt(r_pool: RunspacePool) -> str:
     """Returns the prompt string for the interactive shell."""
-    output, streams, had_errors = run_ps(
+    output, streams, had_errors = run_ps_cmd(
         r_pool, "$pwd.Path"
     )  # Get current working directory
     if not had_errors:
@@ -185,7 +185,7 @@ def get_remote_path_suggestions(
     attrs = ""
     if not re.match(r"^[a-zA-Z]:", directory_prefix):
         # If the path doesn't start with a drive letter, prepend the current directory
-        pwd, streams, had_errors = run_ps(
+        pwd, streams, had_errors = run_ps_cmd(
             r_pool, "$pwd.Path"
         )  # Get current working directory
         directory_prefix = f"{pwd}\\{directory_prefix}"
@@ -807,7 +807,7 @@ def load_ps(r_pool: RunspacePool, local_path: str):
             ps.stop()
 
 
-def run_ps_script(r_pool: RunspacePool, local_path: str) -> None:
+def run_ps(r_pool: RunspacePool, local_path: str) -> None:
     """Runs a local PowerShell script on the remote host."""
     ps = PowerShell(r_pool)
     try:
@@ -896,7 +896,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 remote_path = command_parts[1].strip('"')
                 local_path = command_parts[2].strip('"')
 
-                remote_file, streams, had_errors = run_ps(
+                remote_file, streams, had_errors = run_ps_cmd(
                     r_pool, f"(Resolve-Path -Path '{remote_path}').Path"
                 )
                 if not remote_file:
@@ -938,7 +938,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 if not re.match(r"^[a-zA-Z]:", remote_path):
                     # If the path doesn't start with a drive letter, prepend the current directory
-                    pwd, streams, had_errors = run_ps(r_pool, "$pwd.Path")
+                    pwd, streams, had_errors = run_ps_cmd(r_pool, "$pwd.Path")
                     if remote_path == ".":
                         remote_path = f"{pwd}\\{file_name}"
                     else:
@@ -999,7 +999,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     )
                     continue
 
-                run_ps_script(r_pool, local_path)
+                run_ps(r_pool, local_path)
                 continue
             else:
                 try:
