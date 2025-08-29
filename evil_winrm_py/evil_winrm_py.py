@@ -910,7 +910,9 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 if remote_path.endswith("\\"):
                     remote_path = f"{remote_path}{file_name}"
 
-                upload_file(r_pool, str(Path(local_path).resolve()), remote_path)
+                upload_file(
+                    r_pool, str(Path(local_path).expanduser().resolve()), remote_path
+                )
                 continue
             elif command_lower.startswith("loadps"):
                 command_parts = quoted_command_split(command)
