@@ -169,9 +169,9 @@ evil-winrm-py PS C:\Users\Administrator\Documents> upload <local_path> <remote_p
 evil-winrm-py PS C:\Users\Administrator\Documents> download <remote_path> <local_path>
 ```
 
-### Loading PowerShell Scripts
+### Loading PowerShell Scripts (Dot Sourcing)
 
-You can load PowerShell functions from a local script file into the interactive shell using the `loadps` command. This allows you to use custom PowerShell functions defined in your script.
+You can load PowerShell functions from a local script file into the interactive shell using the `loadps` command. This allows you to use custom PowerShell functions defined in your script. This method is known as "dot sourcing".
 
 This can be helpful when using tools like `PowerView` or `PowerUp` that provide a set of PowerShell functions for post-exploitation tasks.
 
@@ -185,6 +185,14 @@ The help command can be used to get more information about the available command
 
 ```bash
 evil-winrm-py PS C:\Users\Administrator\Documents> Get-Help <LoadedFunctionName> # or help <LoadedFunctionName>
+```
+
+### Running Local PowerShell Scripts
+
+You can run a local PowerShell script on the remote host using the `runps` command. This will read the contents of the specified PowerShell script file and execute it on the remote machine.
+
+```bash
+evil-winrm-py PS C:\Users\Administrator\Documents> runps <local_path>.ps1
 ```
 
 ## Additional Options
