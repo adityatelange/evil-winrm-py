@@ -62,6 +62,7 @@ MENU_COMMANDS = [
     "upload",
     "download",
     "loadps",
+    "runps",
     "menu",
     "clear",
     "exit",
@@ -435,7 +436,7 @@ class CommandPathCompleter(Completer):
             else:
                 # More than 2 arguments, e.g., "download remote_path local_path extra_arg"
                 pass
-        elif actual_command_name == "loadps":
+        elif actual_command_name in ["loadps", "runps"]:
             # syntax: loadps <local_path>
             num_args_present = len(args)
 
@@ -806,6 +807,42 @@ def load_ps(r_pool: RunspacePool, local_path: str):
             ps.stop()
 
 
+def run_ps_script(r_pool: RunspacePool, local_path: str) -> None:
+    """Runs a local PowerShell script on the remote host."""
+    ps = PowerShell(r_pool)
+    try:
+        with open(local_path, "r") as script_file:
+            script = script_file.read()
+
+        ps.add_script(script)
+        ps.begin_invoke()
+
+        cursor = 0
+        while ps.state == PSInvocationState.RUNNING:
+            with DelayedKeyboardInterrupt():
+                ps.poll_invoke()
+            output = ps.output
+            for line in output[cursor:]:
+                print(line)
+            cursor = len(output)
+
+        if ps.streams.error:
+            print(RED + "[-] Failed to run PowerShell script." + RESET)
+            log.error(f"Failed to run PowerShell script '{local_path}'.")
+            for error in ps.streams.error:
+                print(RED + error._to_string + RESET)
+                log.error("Error: {}".format(error._to_string))
+                log.error("\tCategoryInfo: {}".format(error.message))
+                log.error("\tFullyQualifiedErrorId: {}".format(error.fq_error))
+        else:
+            print(GREEN + "[+] PowerShell script ran successfully." + RESET)
+            log.info(f"PowerShell script '{local_path}' ran successfully.")
+    except KeyboardInterrupt:
+        if ps.state == PSInvocationState.RUNNING:
+            log.info("Stopping command execution.")
+            ps.stop()
+
+
 def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -938,6 +975,31 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     continue
 
                 load_ps(r_pool, local_path)
+                continue
+            elif command_lower.startswith("runps"):
+                command_parts = quoted_command_split(command)
+                if len(command_parts) < 2:
+                    print(RED + "[-] Usage: runps <local_path>" + RESET)
+                    continue
+                local_path = command_parts[1].strip('"')
+                local_path = Path(local_path).expanduser().resolve()
+
+                if not local_path.exists():
+                    print(
+                        RED
+                        + f"[-] Local PowerShell script '{local_path}' does not exist."
+                        + RESET
+                    )
+                    continue
+                elif local_path.suffix.lower() != ".ps1":
+                    print(
+                        RED
+                        + "[-] Please provide a valid PowerShell script file with .ps1 extension."
+                        + RESET
+                    )
+                    continue
+
+                run_ps_script(r_pool, local_path)
                 continue
             else:
                 try:
