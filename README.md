@@ -1,8 +1,12 @@
-# evil-winrm-py
+<div align=center>
+  <img height="150" alt="ewp-logo" src="https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/heads/main/assets/logo.svg" />
+  <h1>evil-winrm-py</h1>
 
 [![PyPI version](https://img.shields.io/pypi/v/evil-winrm-py)](https://pypi.org/project/evil-winrm-py/)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![License](https://img.shields.io/github/license/adityatelange/evil-winrm-py)
+
+</div>
 
 `evil-winrm-py` is a python-based tool for executing commands on remote Windows machines using the WinRM (Windows Remote Management) protocol. It provides an interactive shell with enhanced features like file upload/download, command history, and colorized output. It supports various authentication methods including NTLM, Pass-the-Hash, Certificate, and Kerberos.
 
