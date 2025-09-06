@@ -27,7 +27,7 @@ setup(
     ],
     install_requires=[
         "pypsrp==0.8.1",
-        "prompt_toolkit==3.0.51",
+        "prompt_toolkit==3.0.52",
         "tqdm==4.67.1",
     ],
     extras_require={
