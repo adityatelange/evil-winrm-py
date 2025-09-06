@@ -25,7 +25,7 @@ pip install evil-winrm-py[kerberos]
 Installing latest development version directly from GitHub:
 
 ```bash
-pip install git+https://github.com/adityatelange/evil-winrm-py[kerberos]
+pip install 'evil-winrm-py[kerberos] @ git+https://github.com/adityatelange/evil-winrm-py'
 ```
 
 ## Using `pipx`
@@ -39,7 +39,7 @@ pipx install evil-winrm-py[kerberos]
 Installing latest development version directly from GitHub:
 
 ```bash
-pipx install git+https://github.com/adityatelange/evil-winrm-py[kerberos]
+pipx install 'evil-winrm-py[kerberos] @ git+https://github.com/adityatelange/evil-winrm-py'
 ```
 
 ## Using `uv`
