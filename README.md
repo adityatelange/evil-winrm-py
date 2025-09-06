@@ -89,6 +89,8 @@ pip install --upgrade evil-winrm-py
 pip uninstall evil-winrm-py
 ```
 
+Check [Installation Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/install.md) for more details.
+
 ## Usage
 
 Details on how to use `evil-winrm-py` can be found in the [Usage Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/usage.md).
