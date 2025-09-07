@@ -904,7 +904,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     )
                     continue
                 remote_path = command_parts[1].strip('"')
-                local_path = command_parts[2].strip('"')
+                local_path = command_parts[2].strip('"').strip("'")
 
                 remote_file, streams, had_errors = run_ps_cmd(
                     r_pool, f"(Resolve-Path -Path '{remote_path}').Path"
@@ -935,7 +935,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 if len(command_parts) < 3:
                     print(RED + "[-] Usage: upload <local_path> <remote_path>" + RESET)
                     continue
-                local_path = command_parts[1].strip('"')
+                local_path = command_parts[1].strip('"').strip("'")
                 remote_path = command_parts[2].strip('"')
 
                 if not Path(local_path).expanduser().exists():
