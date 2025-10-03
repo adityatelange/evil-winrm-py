@@ -4,15 +4,28 @@
 
 - PyPI - https://pypi.org/project/evil-winrm-py/
 - Github - https://github.com/adityatelange/evil-winrm-py
+- Kali Linux - https://pkg.kali.org/pkg/evil-winrm-py
+- Parrot OS - https://gitlab.com/parrotsec/packages/evil-winrm-py
 
-### Installation of Kerberos Dependencies on Linux
+## For Kali Linux and Parrot OS Users
+
+If you are using Kali Linux or Parrot OS, you can install `evil-winrm-py` directly from the package manager:
+
+```bash
+sudo apt update
+sudo apt install evil-winrm-py
+```
+---
+
+## Installation of Kerberos Dependencies on Linux
 
 ```bash
 sudo apt install gcc python3-dev libkrb5-dev krb5-pkinit
 # Optional: krb5-user
 ```
 
-> [!NOTE] > `[kerberos]` is an optional dependency that includes the necessary packages for Kerberos authentication support. If you do not require Kerberos authentication, you can install `evil-winrm-py` without this extra.
+> [!NOTE]
+> `[kerberos]` is an optional dependency that includes the necessary packages for Kerberos authentication support. If you do not require Kerberos authentication, you can install `evil-winrm-py` without this extra.
 
 ## Using `pip`
 

@@ -91,6 +91,17 @@ pip uninstall evil-winrm-py
 
 Check [Installation Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/install.md) for more details.
 
+## Availability on Unix distributions
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/evil-winrm-py.svg)](https://repology.org/project/evil-winrm-py/versions)
+
+For above mentioned distributions, you can install `evil-winrm-py` directly from the package manager:
+
+```bash
+sudo apt update
+sudo apt install evil-winrm-py
+```
+
 ## Usage
 
 Details on how to use `evil-winrm-py` can be found in the [Usage Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/usage.md).
