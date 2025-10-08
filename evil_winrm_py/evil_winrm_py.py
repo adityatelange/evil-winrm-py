@@ -66,6 +66,7 @@ MENU_COMMANDS = [
     "menu",
     "clear",
     "exit",
+    "services",
 ]
 COMMAND_SUGGESTIONS = []
 
@@ -142,6 +143,7 @@ def show_menu() -> None:
         ("download <remote_path> <local_path>", "Download a file"),
         ("loadps <local_path>.ps1", "Load PowerShell functions from a local script"),
         ("runps <local_path>.ps1", "Run a local PowerShell script on the remote host"),
+        ("services", "Show the running services (except system services)")
         ("menu", "Show this menu"),
         ("clear, cls", "Clear the screen"),
         ("exit", "Exit the shell"),
@@ -896,6 +898,19 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 log.info("Displaying menu.")
                 show_menu()
                 continue
+            elif command_lower == "services":
+                log.info("Displaying services.")
+                get_services_command = '$servicios = Get-ItemProperty "registry::HKLM\System\CurrentControlSet\Services\*" | Where-Object {$_.imagepath -notmatch "system" -and $_.imagepath -ne $null } | Select-Object pschildname,imagepath  ; foreach ($servicio in $servicios  ) {Get-Service $servicio.PSChildName -ErrorAction SilentlyContinue | Out-Null ; if ($? -eq $true) {$privs = $true} else {$privs = $false} ; $Servicios_object = New-Object psobject -Property @{"Service" = $servicio.pschildname ; "Path" = $servicio.imagepath ; "Privileges" = $privs} ;  $Servicios_object | Format-List}'
+                services, streams, had_errors = run_ps_cmd(r_pool, get_services_command)
+                if not services:
+                    print(
+                        RED + "[-] Can not retrieve service information" + RESET
+                    )
+                    continue
+                print(services)
+                continue
+
+
             elif command_lower.startswith("download"):
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 3:
