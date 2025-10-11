@@ -12,6 +12,36 @@ evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD>
 
 Kerberos authentication supports both password-based and ticket-based authentication.
 
+#### Generate hosts file entry
+
+Use `netexec` to generate a hosts file entry for the target domain.
+
+```bash
+netexec smb sevenkingdoms.local --generate-hosts-file hosts.txt
+```
+
+Copy the content of `hosts.txt` to your `/etc/hosts` file.
+
+> [!IMPORTANT]
+> If you are adding an entry manually, ensure you follow the correct format for subdomains and fully qualified domain names (FQDNs). Kerberos uses SPNEGO, which relies on a specific algorithm to resolve hostnames. For more details, see [SPNEGO algorithm to resolve host names](https://www.ibm.com/docs/en/samfm/8.0.1?topic=spnego-algorithm-resolve-host-names).
+>
+> The format is as follows:
+>
+> ```
+> <IP> fully_qualified_hostname short_name
+> <IP> kingslanding.sevenkingdoms.local sevenkingdoms.local kingslanding
+> ```
+
+#### Generate krb5.conf file
+
+Use `netexec` to generate a `krb5.conf` file for the target domain.
+
+```bash
+netexec smb sevenkingdoms.local --generate-krb5-file krb5.conf
+```
+
+Sample `krb5.conf` file can be found [here](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/sample/krb5.conf).
+
 #### Password-based Kerberos Authentication
 
 This will request a Kerberos ticket and store it in memory for the session.
@@ -24,7 +54,7 @@ evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
 
 If you already have a Kerberos ticket (e.g., from `kinit`), you can use it directly without providing a password.
 
-Specify the `KRB5CCNAME` and `KRB5_CONFIG` environment variables to point to your Kerberos ticket cache and configuration file, respectively. Sample `krb5.conf` file can be found [here](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/sample/krb5.conf).
+Specify the `KRB5CCNAME` and `KRB5_CONFIG` environment variables to point to your Kerberos ticket cache and configuration file, respectively.
 
 ```bash
 export KRB5CCNAME=/path/to/your/krb5cc_file
