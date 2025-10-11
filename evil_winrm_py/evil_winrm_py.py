@@ -63,6 +63,7 @@ MENU_COMMANDS = [
     "download",
     "loadps",
     "runps",
+    "loaddll",
     "menu",
     "clear",
     "exit",
@@ -142,6 +143,7 @@ def show_menu() -> None:
         ("download <remote_path> <local_path>", "Download a file"),
         ("loadps <local_path>.ps1", "Load PowerShell functions from a local script"),
         ("runps <local_path>.ps1", "Run a local PowerShell script on the remote host"),
+        ("loaddll <local_path>.dll", "Load a local DLL as a module on the remote host"),
         ("menu", "Show this menu"),
         ("clear, cls", "Clear the screen"),
         ("exit", "Exit the shell"),
@@ -477,6 +479,47 @@ class CommandPathCompleter(Completer):
                     )
             else:
                 # More than 1 argument, e.g., "loadps local_path extra_arg"
+                pass
+        elif actual_command_name in ["loaddll"]:
+            # syntax: loaddll <local_path>
+            num_args_present = len(args)
+
+            if num_args_present == 0:
+                # User typed "loaddll "
+                # Completing the 1st argument (local_path), currently empty
+                current_arg_text_being_completed = ""
+                directory_prefix, partial_name = get_directory_and_partial_name(
+                    current_arg_text_being_completed, sep=os.sep
+                )
+                suggestions = get_local_path_suggestions(
+                    directory_prefix, partial_name, extension=".dll"
+                )
+            elif num_args_present == 1:
+                # We have "loaddll arg1" or "loaddll local_path "
+                if path_typed_segment.endswith(" "):
+                    # 1st argument (local_path) is complete, currently empty.
+                    current_arg_text_being_completed = ""
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        current_arg_text_being_completed, sep=os.sep
+                    )
+                    suggestions = get_local_path_suggestions(
+                        directory_prefix, partial_name, extension=".dll"
+                    )
+                else:
+                    # Still completing the 1st argument (local_path)
+                    current_arg_text_being_completed = path_being_completed = args[0]
+                    if path_being_completed.startswith('"'):
+                        path_being_completed = current_arg_text_being_completed.strip(
+                            '"'
+                        )
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        path_being_completed, sep=os.sep
+                    )
+                    suggestions = get_local_path_suggestions(
+                        directory_prefix, partial_name, extension=".dll"
+                    )
+            else:
+                # More than 1 argument, e.g., "loaddll local_path extra_arg"
                 pass
         else:
             if actual_command_name == "cd":
@@ -853,6 +896,69 @@ def run_ps(r_pool: RunspacePool, local_path: str) -> None:
             ps.stop()
 
 
+def load_dll(r_pool: RunspacePool, local_path: str) -> None:
+    """Uploads in-memory and loads a local DLL on the remote host, then invokes a specified function."""
+    ps = PowerShell(r_pool)
+    try:
+        with open(local_path, "rb") as dll_file:
+            dll_data = dll_file.read()
+            base64_dll = base64.b64encode(dll_data).decode("utf-8")
+
+        script = get_ps_script("loaddll.ps1")
+        ps.add_script(script)
+        ps.add_parameter("Base64Dll", base64_dll)
+        ps.begin_invoke()
+
+        cursor = 0
+        name = ""
+        while ps.state == PSInvocationState.RUNNING:
+            with DelayedKeyboardInterrupt():
+                ps.poll_invoke()
+            output = ps.output
+            for line in output[cursor:]:
+                line = json.loads(line)
+                if line["Type"] == "Error":
+                    print(RED + f"[-] Error: {line['Message']}" + RESET)
+                    log.error(f"Error: {line['Message']}")
+                    return
+                elif line["Type"] == "Metadata":
+                    if "Name" in line:
+                        name = line["Name"]
+                        print(GREEN + f"[+] Loading '{name}' as a module..." + RESET)
+                        log.info(f"Loading '{name}' as a module...")
+                    elif "Funcs" in line:
+                        print(
+                            CYAN
+                            + "[*] New commands available available (use TAB to autocomplete):"
+                            + RESET
+                        )
+                        print(", ".join(line["Funcs"]))
+                        global COMMAND_SUGGESTIONS
+                        new_suggestions = []
+                        for func in line["Funcs"]:
+                            if func not in COMMAND_SUGGESTIONS:
+                                new_suggestions += [func]
+                        if new_suggestions:
+                            COMMAND_SUGGESTIONS += new_suggestions
+            cursor = len(output)
+
+        if ps.streams.error:
+            print(RED + "[-] Failed to load DLL" + RESET)
+            log.error(f"Failed to load DLL '{local_path}'")
+            for error in ps.streams.error:
+                print(RED + error._to_string + RESET)
+                log.error("Error: {}".format(error._to_string))
+                log.error("\tCategoryInfo: {}".format(error.message))
+                log.error("\tFullyQualifiedErrorId: {}".format(error.fq_error))
+        else:
+            print(GREEN + f"[+] DLL '{name}' loaded successfully." + RESET)
+            log.info(f"DLL '{local_path}' loaded successfully.")
+    except KeyboardInterrupt:
+        if ps.state == PSInvocationState.RUNNING:
+            log.info("Stopping command execution.")
+            ps.stop()
+
+
 def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -1010,6 +1116,26 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     continue
 
                 run_ps(r_pool, local_path)
+                continue
+            elif command_lower.startswith("loaddll"):
+                command_parts = quoted_command_split(command)
+                if len(command_parts) < 2:
+                    print(RED + "[-] Usage: loaddll <local_path>" + RESET)
+                    continue
+                local_path = command_parts[1].strip('"')
+                local_path = Path(local_path).expanduser().resolve()
+
+                if not local_path.exists():
+                    print(RED + f"[-] Local dll '{local_path}' does not exist." + RESET)
+                    continue
+                elif local_path.suffix.lower() != ".dll":
+                    print(
+                        RED
+                        + "[-] Please provide a valid dll file with .dll extension."
+                        + RESET
+                    )
+                    continue
+                load_dll(r_pool, local_path)
                 continue
             else:
                 try:
