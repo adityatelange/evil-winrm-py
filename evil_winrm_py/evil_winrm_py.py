@@ -37,10 +37,10 @@ from tqdm import tqdm
 
 # check if kerberos is installed
 try:
-    from krb5._exceptions import Krb5Error
     from gssapi.creds import Credentials as GSSAPICredentials
+    from gssapi.exceptions import ExpiredCredentialsError, MissingCredentialsError
     from gssapi.raw import Creds as RawCreds
-    from gssapi.exceptions import MissingCredentialsError, ExpiredCredentialsError
+    from krb5._exceptions import Krb5Error
 
     is_kerb_available = True
 except ImportError:
