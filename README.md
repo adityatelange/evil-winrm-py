@@ -31,6 +31,8 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Auto-complete local and remote file paths (also the ones which have spaces) with `Tab` completion.
 - Load PowerShell functions from local scripts into the interactive shell. 🆕
 - Run local PowerShell scripts on the remote host. 🆕
+- Load local DLLs (in-memory) as PowerShell modules on the remote host. 🆕
+- Upload and execute local EXEs (in-memory) on the remote host. 🆕
 - Enable logging and debugging for better traceability.
 - Navigate command history using `up`/`down` arrow keys.
 - Display colorized output for improved readability.
@@ -156,6 +158,8 @@ Menu:
 [+] download <remote_path> <local_path>                     - Download a file
 [+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
 [+] runps <local_path>.ps1                                  - Run a local PowerShell script on the remote host
+[+] loaddll <local_path>.dll                                - Load a local DLL (in-memory) as a module on the remote host
+[+] runexe <local_path>.exe                                 - Upload and execute (in-memory) a local EXE on the remote host
 [+] menu                                                    - Show this menu
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell
