@@ -183,6 +183,8 @@ Menu:
 [+] download <remote_path> <local_path>                     - Download a file
 [+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
 [+] runps <local_path>.ps1                                  - Run a local PowerShell script on the remote host
+[+] loaddll <local_path>.dll                                - Load a local DLL (in-memory) as a module on the remote host
+[+] runexe <local_path>.exe [args]                          - Upload and execute (in-memory) a local EXE on the remote host
 [+] menu                                                    - Show this menu
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell
@@ -225,6 +227,28 @@ You can run a local PowerShell script on the remote host using the `runps` comma
 
 ```bash
 evil-winrm-py PS C:\Users\Administrator\Documents> runps <local_path>.ps1
+```
+
+### Loading Local DLLs as PowerShell Modules
+
+You can load a local DLL file as a module on the remote host using the `loaddll` command. This will upload the specified DLL file in-memory and load it as a module. Note that this uses .NET's Reflection to load the DLL, so it may not work with all DLL files.
+
+This can be helpful when using tools like [ADModule](https://github.com/samratashok/ADModule).
+
+These Commands/Commandlets will be added to Command Suggestions so you can use them directly using the `Tab` key for auto-completion.
+
+```bash
+evil-winrm-py PS C:\Users\Administrator\Documents> loaddll <local_path>.dll
+```
+
+### Executing Local EXEs on the Remote Host
+
+You can upload and execute a local EXE file on the remote host using the `runexe` command. This will upload the specified EXE file in-memory and execute it with optional arguments. Note that this uses .NET's Reflection to load and execute the EXE, so it may not work with all EXE files.
+
+This can be helpful when using tools present in [SharpCollection](https://github.com/Flangvik/SharpCollection).
+
+```bash
+evil-winrm-py PS C:\Users\Administrator\Documents> runexe <local_path>.exe [args]
 ```
 
 ## Additional Options

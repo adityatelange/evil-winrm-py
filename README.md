@@ -159,7 +159,7 @@ Menu:
 [+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
 [+] runps <local_path>.ps1                                  - Run a local PowerShell script on the remote host
 [+] loaddll <local_path>.dll                                - Load a local DLL (in-memory) as a module on the remote host
-[+] runexe <local_path>.exe                                 - Upload and execute (in-memory) a local EXE on the remote host
+[+] runexe <local_path>.exe [args]                          - Upload and execute (in-memory) a local EXE on the remote host
 [+] menu                                                    - Show this menu
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell
