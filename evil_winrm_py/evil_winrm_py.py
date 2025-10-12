@@ -58,17 +58,44 @@ from evil_winrm_py.pypsrp_ewp.wsman import WSManEWP
 LOG_PATH = Path.cwd().joinpath("evil_winrm_py.log")
 HISTORY_FILE = Path.home().joinpath(".evil_winrm_py_history")
 HISTORY_LENGTH = 1000
-MENU_COMMANDS = [
-    "upload",
-    "download",
-    "loadps",
-    "runps",
-    "loaddll",
-    "runexe",
-    "menu",
-    "clear",
-    "exit",
-]
+MENU_COMMANDS = {
+    "upload": {
+        "syntax": "upload <local_path> <remote_path>",
+        "info": "Upload a file",
+    },
+    "download": {
+        "syntax": "download <remote_path> <local_path>",
+        "info": "Download a file",
+    },
+    "loadps": {
+        "syntax": "loadps <local_path>.ps1",
+        "info": "Load PowerShell functions from a local script",
+    },
+    "runps": {
+        "syntax": "runps <local_path>.ps1",
+        "info": "Run a local PowerShell script on the remote host",
+    },
+    "loaddll": {
+        "syntax": "loaddll <local_path>.dll",
+        "info": "Load a local DLL (in-memory) as a module on the remote host",
+    },
+    "runexe": {
+        "syntax": "runexe <local_path>.exe [args]",
+        "info": "Upload and execute (in-memory) a local EXE on the remote host",
+    },
+    "menu": {
+        "syntax": "menu",
+        "info": "Show this menu",
+    },
+    "clear": {
+        "syntax": "clear, cls",
+        "info": "Clear the screen",
+    },
+    "exit": {
+        "syntax": "exit",
+        "info": "Exit the shell",
+    },
+}
 COMMAND_SUGGESTIONS = []
 
 # --- Colors ---
@@ -138,21 +165,8 @@ def get_prompt(r_pool: RunspacePool) -> str:
 def show_menu() -> None:
     """Displays the help menu for interactive commands."""
     print(BOLD + "\nMenu:" + RESET)
-    commands = [
-        # ("command", "description")
-        ("upload <local_path> <remote_path>", "Upload a file"),
-        ("download <remote_path> <local_path>", "Download a file"),
-        ("loadps <local_path>.ps1", "Load PowerShell functions from a local script"),
-        ("runps <local_path>.ps1", "Run a local PowerShell script on the remote host"),
-        ("loaddll <local_path>.dll", "Load a local DLL (in-memory) as a module on the remote host"),
-        ("runexe <local_path>.exe", "Upload and execute (in-memory) a local EXE on the remote host"),
-        ("menu", "Show this menu"),
-        ("clear, cls", "Clear the screen"),
-        ("exit", "Exit the shell"),
-    ]
-
-    for command, description in commands:
-        print(f"{CYAN}[+] {command:<55} - {description}{RESET}")
+    for command in MENU_COMMANDS.values():
+        print(f"{CYAN}[+] {command['syntax']:<55} - {command['info']}{RESET}")
     print("Note: Use absolute paths for upload/download for reliability.\n")
 
 
@@ -263,7 +277,7 @@ class CommandPathCompleter(Completer):
         tokens = text_before_cursor.split(maxsplit=1)
 
         if not tokens:  # Empty input, suggest all commands
-            for cmd_sugg in MENU_COMMANDS + COMMAND_SUGGESTIONS:
+            for cmd_sugg in list(MENU_COMMANDS.keys()) + COMMAND_SUGGESTIONS:
                 yield Completion(cmd_sugg, start_position=0, display=cmd_sugg)
             return
 
@@ -298,7 +312,7 @@ class CommandPathCompleter(Completer):
         # There's only one token and no trailing space.
         if len(tokens) == 1 and not text_before_cursor.endswith(" "):
             # User is typing the command, -> "downl"
-            for cmd_sugg in MENU_COMMANDS + COMMAND_SUGGESTIONS:
+            for cmd_sugg in list(MENU_COMMANDS.keys()) + COMMAND_SUGGESTIONS:
                 if cmd_sugg.startswith(command_typed_part):
                     yield Completion(
                         cmd_sugg + " ",  # Full suggested command
