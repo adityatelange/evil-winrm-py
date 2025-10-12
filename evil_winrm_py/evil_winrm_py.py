@@ -64,6 +64,7 @@ MENU_COMMANDS = [
     "loadps",
     "runps",
     "loaddll",
+    "runexe",
     "menu",
     "clear",
     "exit",
@@ -144,6 +145,7 @@ def show_menu() -> None:
         ("loadps <local_path>.ps1", "Load PowerShell functions from a local script"),
         ("runps <local_path>.ps1", "Run a local PowerShell script on the remote host"),
         ("loaddll <local_path>.dll", "Load a local DLL as a module on the remote host"),
+        ("runexe <local_path>.exe", "Upload and execute a local EXE on the remote host"),
         ("menu", "Show this menu"),
         ("clear, cls", "Clear the screen"),
         ("exit", "Exit the shell"),
@@ -520,6 +522,47 @@ class CommandPathCompleter(Completer):
                     )
             else:
                 # More than 1 argument, e.g., "loaddll local_path extra_arg"
+                pass
+        elif actual_command_name in ["runexe"]:
+            # syntax: runexe <local_path>
+            num_args_present = len(args)
+
+            if num_args_present == 0:
+                # User typed "runexe "
+                # Completing the 1st argument (local_path), currently empty
+                current_arg_text_being_completed = ""
+                directory_prefix, partial_name = get_directory_and_partial_name(
+                    current_arg_text_being_completed, sep=os.sep
+                )
+                suggestions = get_local_path_suggestions(
+                    directory_prefix, partial_name, extension=".exe"
+                )
+            elif num_args_present == 1:
+                # We have "runexe arg1" or "runexe local_path "
+                if path_typed_segment.endswith(" "):
+                    # 1st argument (local_path) is complete, currently empty.
+                    current_arg_text_being_completed = ""
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        current_arg_text_being_completed, sep=os.sep
+                    )
+                    suggestions = get_local_path_suggestions(
+                        directory_prefix, partial_name, extension=".exe"
+                    )
+                else:
+                    # Still completing the 1st argument (local_path)
+                    current_arg_text_being_completed = path_being_completed = args[0]
+                    if path_being_completed.startswith('"'):
+                        path_being_completed = current_arg_text_being_completed.strip(
+                            '"'
+                        )
+                    directory_prefix, partial_name = get_directory_and_partial_name(
+                        path_being_completed, sep=os.sep
+                    )
+                    suggestions = get_local_path_suggestions(
+                        directory_prefix, partial_name, extension=".exe"
+                    )
+            else:
+                # More than 1 argument, e.g., "runexe local_path extra_arg"
                 pass
         else:
             if actual_command_name == "cd":
@@ -959,6 +1002,52 @@ def load_dll(r_pool: RunspacePool, local_path: str) -> None:
             ps.stop()
 
 
+def run_exe(r_pool: RunspacePool, local_path: str, args: str = "") -> None:
+    """Uploads in-memory and runs a local executable on the remote host."""
+    ps = PowerShell(r_pool)
+    file_path = Path(local_path)
+    file_size = file_path.stat().st_size
+    print(
+        BLUE + f"[*] Uploading in-memory ({file_size} bytes) and executing..." + RESET
+    )
+    log.info(f"Uploading in-memory {file_size} bytes and executing...")
+    try:
+        with open(local_path, "rb") as exe_file:
+            exe_data = exe_file.read()
+            base64_exe = base64.b64encode(exe_data).decode("utf-8")
+
+        script = get_ps_script("exec.ps1")
+        ps.add_script(script)
+        ps.add_parameter("Base64Exe", base64_exe)
+        ps.add_parameter("Args", args.split(" "))
+        ps.begin_invoke()
+
+        cursor = 0
+        while ps.state == PSInvocationState.RUNNING:
+            with DelayedKeyboardInterrupt():
+                ps.poll_invoke()
+            output = ps.output
+            for line in output[cursor:]:
+                print(line)
+            cursor = len(output)
+
+        if ps.streams.error:
+            print(RED + "[-] Failed to run executable." + RESET)
+            log.error(f"Failed to run executable '{local_path}'.")
+            for error in ps.streams.error:
+                print(RED + error._to_string + RESET)
+                log.error("Error: {}".format(error._to_string))
+                log.error("\tCategoryInfo: {}".format(error.message))
+                log.error("\tFullyQualifiedErrorId: {}".format(error.fq_error))
+        else:
+            print(GREEN + "[+] Executable ran successfully." + RESET)
+            log.info(f"Executable '{local_path}' ran successfully.")
+    except KeyboardInterrupt:
+        if ps.state == PSInvocationState.RUNNING:
+            log.info("Stopping command execution.")
+            ps.stop()
+
+
 def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -1136,6 +1225,33 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     )
                     continue
                 load_dll(r_pool, local_path)
+                continue
+            elif command_lower.startswith("runexe"):
+                command_parts = quoted_command_split(command)
+                if len(command_parts) < 2:
+                    print(RED + "[-] Usage: runexe <local_path> [args]" + RESET)
+                    continue
+                local_path = command_parts[1].strip('"')
+                local_path = Path(local_path).expanduser().resolve()
+
+                if not local_path.exists():
+                    print(
+                        RED
+                        + f"[-] Local executable '{local_path}' does not exist."
+                        + RESET
+                    )
+                    continue
+                elif local_path.suffix.lower() != ".exe":
+                    print(
+                        RED
+                        + "[-] Please provide a valid executable file with .exe extension."
+                        + RESET
+                    )
+                    continue
+
+                args = " ".join(command_parts[2:]) if len(command_parts) > 2 else ""
+
+                run_exe(r_pool, local_path, args)
                 continue
             else:
                 try:
