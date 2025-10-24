@@ -83,6 +83,10 @@ MENU_COMMANDS = {
         "syntax": "runexe <local_path>.exe [args]",
         "info": "Upload and execute (in-memory) a local EXE on the remote host",
     },
+    "obf": {
+        "syntax": "obf, obs",
+        "info": "Toggle command obfuscation on/off",
+    },
     "menu": {
         "syntax": "menu",
         "info": "Show this menu",
@@ -97,6 +101,7 @@ MENU_COMMANDS = {
     },
 }
 COMMAND_SUGGESTIONS = []
+OBFUSCATION_ENABLED = False
 
 # --- Colors ---
 # ANSI escape codes for colored output
@@ -157,8 +162,11 @@ def get_prompt(r_pool: RunspacePool) -> str:
     output, streams, had_errors = run_ps_cmd(
         r_pool, "$pwd.Path"
     )  # Get current working directory
+    OBS = ""
+    if OBFUSCATION_ENABLED:
+        OBS = f"{YELLOW}{BOLD} (#$!){RESET}"
     if not had_errors:
-        return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET} {output}> "
+        return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET}{OBS} {output}> "
     return "PS ?> "  # Fallback prompt
 
 
@@ -1266,6 +1274,11 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 args = " ".join(command_parts[2:]) if len(command_parts) > 2 else ""
 
                 run_exe(r_pool, local_path, args)
+                continue
+            elif command_lower in ["obf", "obs"]:
+                global OBFUSCATION_ENABLED
+                OBFUSCATION_ENABLED = not OBFUSCATION_ENABLED
+                log.info("Command obfuscation togged")
                 continue
             else:
                 try:
