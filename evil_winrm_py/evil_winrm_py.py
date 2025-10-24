@@ -1285,7 +1285,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
             elif command_lower in ["obf", "obs"]:
                 global OBFUSCATION_ENABLED
                 OBFUSCATION_ENABLED = not OBFUSCATION_ENABLED
-                log.info("Command obfuscation togged")
+                log.info("Command obfuscation toggled")
                 continue
             else:
                 try:
