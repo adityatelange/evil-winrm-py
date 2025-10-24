@@ -1291,7 +1291,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 try:
                     ps = PowerShell(r_pool)
                     ps.add_cmdlet("Invoke-Expression").add_parameter(
-                        "Command", ps_obfuscate(command)
+                        "Command", ps_obfuscate(command) if OBFUSCATION_ENABLED else command
                     )
                     ps.add_cmdlet("Out-String").add_parameter("Stream")
                     ps.begin_invoke()
