@@ -1070,6 +1070,13 @@ def run_exe(r_pool: RunspacePool, local_path: str, args: str = "") -> None:
             ps.stop()
 
 
+def ps_obfuscate(command: str) -> str:
+    """Obfuscates a PowerShell command using various techniques."""
+    obfuscated = ""
+    # use technique such as random int, random casing, variable randomization, random chars, etc.
+    return command
+
+
 def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -1283,7 +1290,9 @@ def interactive_shell(r_pool: RunspacePool) -> None:
             else:
                 try:
                     ps = PowerShell(r_pool)
-                    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+                    ps.add_cmdlet("Invoke-Expression").add_parameter(
+                        "Command", ps_obfuscate(command)
+                    )
                     ps.add_cmdlet("Out-String").add_parameter("Stream")
                     ps.begin_invoke()
                     log.info("Executing command: {}".format(command))
