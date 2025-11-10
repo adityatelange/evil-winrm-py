@@ -1493,6 +1493,15 @@ def main():
             if not args.password:
                 args.password = None
 
+        # When using Kerberos with cached tickets (KRB5CCNAME), don't pass username to WSMan
+        # This allows spnego to auto-detect the principal from the credential cache
+        # Without this, spnego fails to find the principal when KRB5CCNAME points to a custom location
+        kerberos_user = args.user
+        if auth == "kerberos" and args.no_pass and os.environ.get('KRB5CCNAME'):
+            log.info("Detected KRB5CCNAME environment variable, letting spnego auto-detect principal from cache")
+            kerberos_user = None
+            username = args.user if args.user else username
+
         if username:
             log.info(
                 "[*] Connecting to '{}:{}' as '{}'"
@@ -1511,7 +1520,7 @@ def main():
             port=args.port,
             auth=auth,
             encryption=encryption,
-            username=args.user,
+            username=kerberos_user,
             password=args.password,
             ssl=args.ssl,
             cert_validation=False,
