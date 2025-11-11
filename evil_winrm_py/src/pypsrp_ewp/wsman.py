@@ -298,11 +298,11 @@ class _TransportHTTPEWP(_TransportHTTP):
         hostname = self._cached_hostname
 
         if self.session is None:
-            logger.info(
+            logger.debug(
                 f"No active HTTP session for WSMan (WS-Management protocol), building new session with auth: {self.auth}"
             )
             self.session = self._build_session()
-            logger.info(f"HTTP session established successfully to: {self.endpoint}")
+            logger.debug(f"HTTP session established successfully to: {self.endpoint}")
 
             if self.wrap_required:
                 logger.trace("Message encryption required, setting up security context")
