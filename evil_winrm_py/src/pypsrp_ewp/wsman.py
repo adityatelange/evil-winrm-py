@@ -8,11 +8,11 @@
 # Copyright: (c) 2018, Jordan Borean (@jborean93) <jborean93@gmail.com>
 # MIT License (see LICENSE or https://opensource.org/licenses/MIT)
 
-import logging
 import typing
 import uuid
 import xml.etree.ElementTree as ET
 
+from loguru import logger
 from pypsrp._utils import get_hostname
 from pypsrp.encryption import WinRMEncryption
 from pypsrp.exceptions import WinRMTransportError
@@ -36,9 +36,6 @@ except ImportError as err:  # pragma: no cover
     class HttpCredSSPAuth(object):  # type: ignore[no-redef] # https://github.com/python/mypy/issues/1153
         def __init__(self, *args, **kwargs):
             raise ImportError(_requests_credssp_import_error)
-
-
-log = logging.getLogger(__name__)
 
 
 class WSManEWP(WSMan):
@@ -146,7 +143,7 @@ class WSManEWP(WSMan):
             user_agent: The user agent to use for the HTTP requests, this
                 defaults to 'Microsoft WinRM Client'
         """
-        log.debug(
+        logger.debug(
             "Initialising WSMan class with maximum envelope size of %d "
             "and operation timeout of %s" % (max_envelope_size, operation_timeout)
         )
@@ -279,7 +276,7 @@ class _TransportHTTPEWP(_TransportHTTP):
         self.endpoint = self._create_endpoint(
             self.ssl, self.server, self.port, self.path
         )
-        log.debug(
+        logger.trace(
             "Initialising HTTP transport for endpoint: %s, user: %s, "
             "auth: %s" % (self.endpoint, self.username, self.auth)
         )
@@ -309,8 +306,7 @@ class _TransportHTTPEWP(_TransportHTTP):
 
                 self.encryption = WinRMEncryption(self.session.auth.contexts[hostname], protocol)  # type: ignore[union-attr] # This should not happen
 
-        if log.isEnabledFor(logging.DEBUG):
-            log.debug("Sending message: %s" % message.decode("utf-8"))
+        logger.trace("Sending message: %s" % message.decode("utf-8"))
         # for testing, keep commented out
         # self._test_messages.append({"request": message.decode('utf-8'),
         #                             "response": None})
@@ -341,14 +337,14 @@ class _TransportHTTPEWP(_TransportHTTP):
             return self._send_request(prep_request)
         except WinRMTransportError as err:
             if err.code == 400:
-                log.debug("Session invalid, resetting session")
+                logger.trace("Session invalid, resetting session")
                 self.session = None  # reset the session so we can retry
                 return self.send(message)
             else:
                 raise
 
     def _build_session(self) -> requests.Session:
-        log.debug("Building requests session with auth %s" % self.auth)
+        logger.trace("Building requests session with auth %s" % self.auth)
         self._suppress_library_warnings()
 
         session = requests.Session()
@@ -393,7 +389,7 @@ class _TransportHTTPEWP(_TransportHTTP):
             # Status was added in urllib3 >= 1.21 (Requests >= 2.14.0), remove
             # the status retry counter and try again. The user should upgrade
             # to a newer version
-            log.warning(
+            logger.warning(
                 "Using an older requests version that without support for status retries, ignoring.",
                 exc_info=True,
             )
