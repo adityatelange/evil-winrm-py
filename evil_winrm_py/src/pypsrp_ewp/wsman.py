@@ -299,10 +299,10 @@ class _TransportHTTPEWP(_TransportHTTP):
 
         if self.session is None:
             logger.info(
-                f"No active session, building new session with auth: {self.auth}"
+                f"No active HTTP session for WSMan (WS-Management protocol), building new session with auth: {self.auth}"
             )
             self.session = self._build_session()
-            logger.info(f"Session built successfully for endpoint: {self.endpoint}")
+            logger.info(f"HTTP session established successfully to: {self.endpoint}")
 
             if self.wrap_required:
                 logger.trace("Message encryption required, setting up security context")
