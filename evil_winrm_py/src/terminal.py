@@ -180,6 +180,8 @@ def interactive_shell(
         style=POWERSHELL_STYLE,
     )
 
+    logger.info("Entering interactive shell. Type 'menu' to see available commands.")
+
     while True:
         try:
             user_input = prompt_session.prompt(
