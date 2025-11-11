@@ -3,7 +3,7 @@ from pathlib import Path
 import tomllib
 
 try:
-    __version__ = version("evil-winrm-py")
+    __version__ = version("evil_winrm_py")
 except PackageNotFoundError:
     # Fallback: read directly from pyproject.toml for development
     try:
