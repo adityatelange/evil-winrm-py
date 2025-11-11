@@ -286,25 +286,44 @@ class _TransportHTTPEWP(_TransportHTTP):
         # self._test_messages = []
 
     def send(self, message: bytes) -> bytes:
+        logger.trace("WSMan send() called")
         hostname = get_hostname(self.endpoint)
-        if self.session is None:
-            self.session = self._build_session()
+        logger.trace(f"Hostname resolved to: {hostname}")
 
-            # need to send an initial blank message to setup the security
-            # context required for encryption
+        if self.session is None:
+            logger.info(
+                f"No active session, building new session with auth: {self.auth}"
+            )
+            self.session = self._build_session()
+            logger.info(f"Session built successfully for endpoint: {self.endpoint}")
+
             if self.wrap_required:
+                logger.trace("Message encryption required, setting up security context")
                 request = requests.Request("POST", self.endpoint, data=None)
                 prep_request = self.session.prepare_request(request)
+                logger.trace(
+                    "Sending initial blank message to establish security context"
+                )
                 self._send_request(prep_request)
+                logger.trace("Security context established successfully")
 
                 protocol = WinRMEncryption.SPNEGO
                 if isinstance(self.session.auth, HttpCredSSPAuth):
                     protocol = WinRMEncryption.CREDSSP
-                elif self.session.auth.contexts[hostname].response_auth_header == "kerberos":  # type: ignore[union-attr] # This should not happen
-                    # When Kerberos (not Negotiate) was used, we need to send a special protocol value and not SPNEGO.
+                    logger.trace("Using CredSSP encryption protocol")
+                elif (
+                    self.session.auth.contexts[hostname].response_auth_header
+                    == "kerberos"
+                ):
                     protocol = WinRMEncryption.KERBEROS
+                    logger.trace("Using Kerberos encryption protocol")
+                else:
+                    logger.trace("Using SPNEGO encryption protocol")
 
-                self.encryption = WinRMEncryption(self.session.auth.contexts[hostname], protocol)  # type: ignore[union-attr] # This should not happen
+                self.encryption = WinRMEncryption(
+                    self.session.auth.contexts[hostname], protocol
+                )
+                logger.trace(f"Encryption configured with protocol: {protocol}")
 
         logger.trace("Sending message: %s" % message.decode("utf-8"))
         # for testing, keep commented out
