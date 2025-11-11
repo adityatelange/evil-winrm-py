@@ -282,13 +282,20 @@ class _TransportHTTPEWP(_TransportHTTP):
         )
         self.session: typing.Optional[requests.Session] = None
 
+        # Cache the hostname to avoid repeated resolution
+        self._cached_hostname: typing.Optional[str] = None
+
         # used when building tests, keep commented out
         # self._test_messages = []
 
     def send(self, message: bytes) -> bytes:
         logger.trace("WSMan send() called")
-        hostname = get_hostname(self.endpoint)
-        logger.trace(f"Hostname resolved to: {hostname}")
+
+        # Use cached hostname or resolve once
+        if self._cached_hostname is None:
+            self._cached_hostname = get_hostname(self.endpoint)
+            logger.trace(f"Hostname resolved and cached: {self._cached_hostname}")
+        hostname = self._cached_hostname
 
         if self.session is None:
             logger.info(
