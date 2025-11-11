@@ -1,3 +1,7 @@
+# Project
+krb5.conf
+*.ccache
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
