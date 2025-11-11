@@ -184,8 +184,13 @@ def interactive_shell(
 
     while True:
         try:
+            prompt_text = ANSI(get_prompt(r_pool))
+        except (KeyboardInterrupt, EOFError):
+            return
+
+        try:
             user_input = prompt_session.prompt(
-                ANSI(get_prompt(r_pool)),
+                prompt_text,
                 complete_while_typing=False,
             )
 
