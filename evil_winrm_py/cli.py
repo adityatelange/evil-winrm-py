@@ -293,9 +293,18 @@ def main() -> int:
         else:
             args.spn_prefix = args.spn_hostname = None
 
-        # Kerberos authentication doesn't use passwords - automatically set no_pass
+        # Kerberos can use password authentication or ccache
+        # Only skip password prompt if using ccache (KRB5CCNAME is set)
         if kerberos.IS_KERBEROS_AVAILABLE and args.kerberos:
-            args.no_pass = True
+            # Check if using ccache (no password needed)
+            if kerberos.has_kerberos_ccache():
+                logger.debug("Using Kerberos credential cache (KRB5CCNAME is set)")
+                args.no_pass = True
+            elif not args.password and not args.no_pass:
+                logger.debug(
+                    "No credential cache found (KRB5CCNAME not set), will prompt for password for Kerberos authentication"
+                )
+
             # Update spn_hostname with the resolved FQDN for WSManEWP
             args.spn_hostname = spn_hostname
 

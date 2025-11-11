@@ -311,6 +311,21 @@ def _validate_kerberos_credentials() -> bool:
         return False
 
 
+def has_kerberos_ccache() -> bool:
+    """
+    Check if a Kerberos credential cache is available.
+
+    Returns:
+        bool: True if KRB5CCNAME is set and points to an existing file
+    """
+    krb5_ccname = os.environ.get("KRB5CCNAME")
+    if not krb5_ccname:
+        return False
+
+    ccache_path = Path(krb5_ccname)
+    return ccache_path.exists()
+
+
 def get_kerberos_username() -> str:
     """
     Get the username from Kerberos credentials.
