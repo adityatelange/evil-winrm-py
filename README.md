@@ -28,7 +28,7 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Upload files from the local machine to the remote host.
 - Progress bar for file transfers with speed and time estimation.
 - Stable and reliable file transfer including support for large files with MD5 checksum verification.
-- Auto-complete local and remote file paths (also the ones which have spaces) with `Tab` completion.
+- Auto-complete PowerShell cmdlets/helpers plus local and remote file paths (even those with spaces) with `Tab` completion.
 - Load PowerShell functions from local scripts into the interactive shell. 🆕
 - Run local PowerShell scripts on the remote host. 🆕
 - Load local DLLs (in-memory) as PowerShell modules on the remote host. 🆕
