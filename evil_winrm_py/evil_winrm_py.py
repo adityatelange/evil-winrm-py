@@ -17,6 +17,7 @@ import shutil
 import signal
 import sys
 import tempfile
+import textwrap
 import time
 import traceback
 from importlib import resources
@@ -189,6 +190,12 @@ def get_directory_and_partial_name(text: str, sep: str) -> tuple[str, str]:
     return directory_prefix, partial_name
 
 
+def _ps_single_quote(value: str) -> str:
+    """Wraps a value in single quotes for PowerShell, escaping embedded quotes."""
+    escaped = value.replace("'", "''")
+    return f"'{escaped}'"
+
+
 def get_remote_path_suggestions(
     r_pool: RunspacePool,
     directory_prefix: str,
@@ -219,6 +226,40 @@ def get_remote_path_suggestions(
     ps.add_cmdlet("Out-String").add_parameter("Stream")
     ps.invoke()
     return ps.output
+
+
+def get_remote_command_suggestions(
+    r_pool: RunspacePool, command_prefix: str
+) -> list[str]:
+    """
+    Returns a list of remote PowerShell command names (cmdlets/aliases) that start
+    with the provided prefix.
+    """
+
+    prefix_literal = _ps_single_quote(command_prefix or "")
+    ps_script = textwrap.dedent(
+        f"""
+        $prefix = {prefix_literal};
+        if ([string]::IsNullOrEmpty($prefix)) {{
+            $pattern = '*';
+        }} else {{
+            $pattern = "$prefix*";
+        }}
+        $cmds = Get-Command -Name $pattern -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty Name;
+        if (-not $cmds) {{
+            $cmds = Get-Alias -Name $pattern -ErrorAction SilentlyContinue |
+                Select-Object -ExpandProperty Name;
+        }}
+        $cmds | Sort-Object -Unique
+        """
+    ).strip()
+
+    output, _, had_errors = run_ps_cmd(r_pool, ps_script)
+    if had_errors:
+        return []
+    suggestions = [line.strip() for line in output.splitlines() if line.strip()]
+    return suggestions
 
 
 def get_local_path_suggestions(
@@ -312,8 +353,10 @@ class CommandPathCompleter(Completer):
         # There's only one token and no trailing space.
         if len(tokens) == 1 and not text_before_cursor.endswith(" "):
             # User is typing the command, -> "downl"
+            seen_commands = set()
             for cmd_sugg in list(MENU_COMMANDS.keys()) + COMMAND_SUGGESTIONS:
                 if cmd_sugg.startswith(command_typed_part):
+                    seen_commands.add(cmd_sugg.lower())
                     yield Completion(
                         cmd_sugg + " ",  # Full suggested command
                         start_position=-len(
@@ -321,6 +364,22 @@ class CommandPathCompleter(Completer):
                         ),  # Replace the typed part
                         display=cmd_sugg,
                     )
+            remote_cmds = get_remote_command_suggestions(
+                self.r_pool, command_typed_part
+            )
+            lower_prefix = command_typed_part.lower()
+            for remote_cmd in remote_cmds:
+                cmd_lower = remote_cmd.lower()
+                if lower_prefix and not cmd_lower.startswith(lower_prefix):
+                    continue
+                if cmd_lower in seen_commands:
+                    continue
+                seen_commands.add(cmd_lower)
+                yield Completion(
+                    remote_cmd + " ",
+                    start_position=-len(command_typed_part),
+                    display=remote_cmd,
+                )
             return
 
         # Case 2: Completing a path argument
