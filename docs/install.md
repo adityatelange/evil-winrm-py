@@ -15,6 +15,7 @@ If you are using Kali Linux or Parrot OS, you can install `evil-winrm-py` direct
 sudo apt update
 sudo apt install evil-winrm-py
 ```
+
 ---
 
 ## Installation of Kerberos Dependencies on Linux

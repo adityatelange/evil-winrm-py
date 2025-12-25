@@ -5,6 +5,8 @@
 [![PyPI version](https://img.shields.io/pypi/v/evil-winrm-py)](https://pypi.org/project/evil-winrm-py/)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![License](https://img.shields.io/github/license/adityatelange/evil-winrm-py)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/evil-winrm-py?label=pypi%20downloads)
+[![Github Wiki](https://img.shields.io/badge/github-wiki%2Fdocs-blue)](https://github.com/adityatelange/evil-winrm-py/wiki)
 
 </div>
 
@@ -98,12 +100,7 @@ Check [Installation Guide](https://github.com/adityatelange/evil-winrm-py/blob/m
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/evil-winrm-py.svg)](https://repology.org/project/evil-winrm-py/versions)
 
-For above mentioned distributions, you can install `evil-winrm-py` directly from the package manager:
-
-```bash
-sudo apt update
-sudo apt install evil-winrm-py
-```
+For above mentioned distributions, you can install `evil-winrm-py` directly from their package managers. Thanks to the package maintainers for packaging and maintaining `evil-winrm-py` in their respective distributions.
 
 ## Usage
 
