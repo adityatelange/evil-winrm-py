@@ -927,16 +927,41 @@ def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None
                 ps.stop()
 
 
+def _read_text_auto_encoding(path) -> str:
+    """
+    Reads file with enc utf-8-sig, utf-8, utf-16, and latin-1.
+    Tries multiple encodings to read the file and returns the content as a string.
+    Raises UnicodeDecodeError/Exception if all encodings fail.
+    """
+    text_file_encodings = ["utf-8-sig", "utf-8", "utf-16", "latin-1"]
+    for enc in text_file_encodings:
+        try:
+            with open(path, "r", encoding=enc) as f:
+                text = f.read()
+            log.debug(f"Read '{path}' using encoding {enc}")
+            return text
+        except UnicodeDecodeError:
+            continue
+        except Exception as e:
+            raise
+    raise UnicodeDecodeError("All preferred encodings failed for file: {}".format(path))
+
+
 def load_ps(r_pool: RunspacePool, local_path: str):
     ps = PowerShell(r_pool)
     try:
-        with open(local_path, "r") as script_file:
-            script = script_file.read()
-            # Remove block comments (<#...#>) to avoid matching commented-out functions
-            content = re.sub(r"<#.*?#>", "", script, flags=re.DOTALL)
-            # Find all function names in the script
-            pattern = r"function\s+([a-zA-Z0-9_-]+)\s*(?={|$)"
-            function_names = re.findall(pattern, content, re.MULTILINE)
+        try:
+            script = _read_text_auto_encoding(local_path)
+            print(script)
+        except Exception as e:
+            print(RED + f"[-] Error reading ps script file: {e}" + RESET)
+            log.error(f"Error reading ps script file: {e}")
+            return
+        # Remove block comments (<#...#>) to avoid matching commented-out functions
+        content = re.sub(r"<#.*?#>", "", script, flags=re.DOTALL)
+        # Find all function names in the script
+        pattern = r"function\s+([a-zA-Z0-9_-]+)\s*(?={|$)"
+        function_names = re.findall(pattern, content, re.MULTILINE)
 
         ps.add_script(f". {{ {script} }}")  # Dot sourcing the script
         ps.begin_invoke()
@@ -980,8 +1005,12 @@ def run_ps(r_pool: RunspacePool, local_path: str) -> None:
     """Runs a local PowerShell script on the remote host."""
     ps = PowerShell(r_pool)
     try:
-        with open(local_path, "r") as script_file:
-            script = script_file.read()
+        try:
+            script = _read_text_auto_encoding(local_path)
+        except Exception as e:
+            print(RED + f"[-] Error reading ps script file: {e}" + RESET)
+            log.error(f"Error reading ps script file: {e}")
+            return
 
         ps.add_script(script)
         ps.begin_invoke()
