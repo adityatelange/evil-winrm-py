@@ -34,8 +34,9 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Auto-complete PowerShell cmdlets/helpers with `Tab` completion. 🆕
 - Load PowerShell functions from local scripts into the interactive shell. 🆕
 - Run local PowerShell scripts on the remote host. 🆕
-- Load local DLLs (in-memory) as PowerShell modules on the remote host. 🆕
-- Upload and execute local EXEs (in-memory) on the remote host. 🆕
+- Load local DLLs (in-memory) as PowerShell modules on the remote host.
+- Upload and execute local EXEs (in-memory) on the remote host.
+- Spawn a reverse shell with stdin/stdout/stderr redirected to your listener. 🆕
 - Enable logging and debugging for better traceability.
 - Navigate command history using `up`/`down` arrow keys.
 - Display colorized output for improved readability.
@@ -80,6 +81,34 @@ or if you want to install with latest commit from the main branch you can do so 
 git clone https://github.com/adityatelange/evil-winrm-py
 cd evil-winrm-py
 pip install .
+```
+
+#### Install fork with uv (recommended)
+
+If you have a system-wide installation (e.g., from apt), uninstall it first:
+
+```bash
+sudo apt remove evil-winrm-py
+```
+
+Then install the fork using `uv tool` (isolated environment):
+
+```bash
+git clone https://github.com/x746b/evil-winrm-py
+cd evil-winrm-py
+uv tool install .
+```
+
+To update after making changes:
+
+```bash
+uv tool install . --reinstall
+```
+
+To uninstall:
+
+```bash
+uv tool uninstall evil-winrm-py
 ```
 
 ### Update
@@ -158,6 +187,7 @@ Menu:
 [+] runps <local_path>.ps1                                  - Run a local PowerShell script on the remote host
 [+] loaddll <local_path>.dll                                - Load a local DLL (in-memory) as a module on the remote host
 [+] runexe <local_path>.exe [args]                          - Upload and execute (in-memory) a local EXE on the remote host
+[+] revshell <IP> <PORT>                                    - Spawn a reverse shell to IP:PORT with stdin/stdout/stderr redirected
 [+] menu                                                    - Show this menu
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell
@@ -171,6 +201,7 @@ Note: Use absolute paths for upload/download for reliability.
 - Prompt Toolkit - https://github.com/prompt-toolkit/python-prompt-toolkit
 - tqdm - https://github.com/tqdm/tqdm
 - Thanks to [Github Coplilot](https://github.com/features/copilot) and [Google Gemini](https://gemini.google.com/app) for code suggestions and improvements.
+- [xtk](https://github.com/x746b) - revshell feature (ported from [winrmexec](https://github.com/x746b/winrmexec))
 
 ## Stargazers over time
 
