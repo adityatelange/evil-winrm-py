@@ -60,6 +60,10 @@ LOG_PATH = Path.cwd().joinpath("evil_winrm_py.log")
 HISTORY_FILE = Path.home().joinpath(".evil_winrm_py_history")
 HISTORY_LENGTH = 1000
 MENU_COMMANDS = {
+    "services": {
+        "syntax": "services",
+        "info": "Show the running services (except system services)",
+    },
     "upload": {
         "syntax": "upload <local_path> <remote_path>",
         "info": "Upload a file",
@@ -96,10 +100,6 @@ MENU_COMMANDS = {
         "syntax": "exit",
         "info": "Exit the shell",
     },
-    "services": {
-        "syntax": "services"
-        "info": "Show the running services (except system services)"
-    }
 }
 COMMAND_SUGGESTIONS = []
 
@@ -1199,16 +1199,17 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 continue
             elif command_lower == "services":
                 log.info("Displaying services.")
-                get_services_command = "Get-ItemProperty 'Registry::HKLM\System\CurrentControlSet\Services\*' -ErrorAction SilentlyContinue | Where-Object { $_.ImagePath -and ($_.ImagePath -notmatch 'system') } | Select-Object @{n='Service';e={$_.PSChildName}}, @{n='Path';e={$_.ImagePath}}"
+                get_services_command = (
+                    "Get-ItemProperty 'Registry::HKLM\System\CurrentControlSet\Services\*' -ErrorAction "
+                    "SilentlyContinue | Where-Object { $_.ImagePath -and ($_.ImagePath -notmatch 'system') } "
+                    "| Select-Object @{n='Service';e={$_.PSChildName}}, @{n='Path';e={$_.ImagePath}}"
+                )
                 services, streams, had_errors = run_ps_cmd(r_pool, get_services_command)
                 if not services:
-                    print(
-                        RED + "[-] Can not retrieve service information" + RESET
-                    )
+                    print(RED + "[-] Can not retrieve service information" + RESET)
                     continue
                 print(services)
                 continue
-
 
             elif command_lower.startswith("download"):
                 command_parts = quoted_command_split(command)
