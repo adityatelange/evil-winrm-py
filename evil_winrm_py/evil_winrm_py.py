@@ -96,6 +96,10 @@ MENU_COMMANDS = {
         "syntax": "exit",
         "info": "Exit the shell",
     },
+    "services": {
+        "syntax": "services"
+        "info": "Show the running services (except system services)"
+    }
 }
 COMMAND_SUGGESTIONS = []
 
