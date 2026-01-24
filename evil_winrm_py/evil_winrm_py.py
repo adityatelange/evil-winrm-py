@@ -88,6 +88,10 @@ MENU_COMMANDS = {
         "syntax": "runexe <local_path>.exe [args]",
         "info": "Upload and execute (in-memory) a local EXE on the remote host",
     },
+    "obf": {
+        "syntax": "obf, obs",
+        "info": "Toggle command obfuscation on/off",
+    },
     "menu": {
         "syntax": "menu",
         "info": "Show this menu",
@@ -102,6 +106,7 @@ MENU_COMMANDS = {
     },
 }
 COMMAND_SUGGESTIONS = []
+OBFUSCATION_ENABLED = False
 
 # --- Colors ---
 # ANSI escape codes for colored output
@@ -162,8 +167,11 @@ def get_prompt(r_pool: RunspacePool) -> str:
     output, streams, had_errors = run_ps_cmd(
         r_pool, "$pwd.Path"
     )  # Get current working directory
+    OBS = ""
+    if OBFUSCATION_ENABLED:
+        OBS = f"{YELLOW}{BOLD} (#$!){RESET}"
     if not had_errors:
-        return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET} {output}> "
+        return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET}{OBS} {output}> "
     return "PS ?> "  # Fallback prompt
 
 
@@ -1154,6 +1162,13 @@ def run_exe(r_pool: RunspacePool, local_path: str, args: str = "") -> None:
             ps.stop()
 
 
+def ps_obfuscate(command: str) -> str:
+    """Obfuscates a PowerShell command using various techniques."""
+    obfuscated = ""
+    # use technique such as random int, random casing, variable randomization, random chars, etc.
+    return command
+
+
 def interactive_shell(r_pool: RunspacePool) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
@@ -1373,10 +1388,17 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 run_exe(r_pool, local_path, args)
                 continue
+            elif command_lower in ["obf", "obs"]:
+                global OBFUSCATION_ENABLED
+                OBFUSCATION_ENABLED = not OBFUSCATION_ENABLED
+                log.info("Command obfuscation toggled")
+                continue
             else:
                 try:
                     ps = PowerShell(r_pool)
-                    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+                    ps.add_cmdlet("Invoke-Expression").add_parameter(
+                        "Command", ps_obfuscate(command) if OBFUSCATION_ENABLED else command
+                    )
                     ps.add_cmdlet("Out-String").add_parameter("Stream")
                     ps.begin_invoke()
                     log.info("Executing command: {}".format(command))
