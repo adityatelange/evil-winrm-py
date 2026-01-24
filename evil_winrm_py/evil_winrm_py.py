@@ -900,7 +900,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 continue
             elif command_lower == "services":
                 log.info("Displaying services.")
-                get_services_command = '$servicios = Get-ItemProperty "registry::HKLM\System\CurrentControlSet\Services\*" | Where-Object {$_.imagepath -notmatch "system" -and $_.imagepath -ne $null } | Select-Object pschildname,imagepath  ; foreach ($servicio in $servicios  ) {Get-Service $servicio.PSChildName -ErrorAction SilentlyContinue | Out-Null ; if ($? -eq $true) {$privs = $true} else {$privs = $false} ; $Servicios_object = New-Object psobject -Property @{"Service" = $servicio.pschildname ; "Path" = $servicio.imagepath ; "Privileges" = $privs} ;  $Servicios_object | Format-List}'
+                get_services_command = "Get-ItemProperty 'Registry::HKLM\System\CurrentControlSet\Services\*' -ErrorAction SilentlyContinue | Where-Object { $_.ImagePath -and ($_.ImagePath -notmatch 'system') } | Select-Object @{n='Service';e={$_.PSChildName}}, @{n='Path';e={$_.ImagePath}}"
                 services, streams, had_errors = run_ps_cmd(r_pool, get_services_command)
                 if not services:
                     print(
