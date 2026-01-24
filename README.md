@@ -5,6 +5,8 @@
 [![PyPI version](https://img.shields.io/pypi/v/evil-winrm-py)](https://pypi.org/project/evil-winrm-py/)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![License](https://img.shields.io/github/license/adityatelange/evil-winrm-py)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/evil-winrm-py?label=pypi%20downloads)
+[![Github Wiki](https://img.shields.io/badge/github-wiki%2Fdocs-blue)](https://github.com/adityatelange/evil-winrm-py/wiki)
 
 </div>
 
@@ -28,9 +30,12 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Upload files from the local machine to the remote host.
 - Progress bar for file transfers with speed and time estimation.
 - Stable and reliable file transfer including support for large files with MD5 checksum verification.
-- Auto-complete local and remote file paths (also the ones which have spaces) with `Tab` completion.
+- Auto-complete local and remote file paths (even those with spaces) with `Tab` completion.
+- Auto-complete PowerShell cmdlets/helpers with `Tab` completion. 🆕
 - Load PowerShell functions from local scripts into the interactive shell. 🆕
 - Run local PowerShell scripts on the remote host. 🆕
+- Load local DLLs (in-memory) as PowerShell modules on the remote host. 🆕
+- Upload and execute local EXEs (in-memory) on the remote host. 🆕
 - Enable logging and debugging for better traceability.
 - Navigate command history using `up`/`down` arrow keys.
 - Display colorized output for improved readability.
@@ -95,12 +100,7 @@ Check [Installation Guide](https://github.com/adityatelange/evil-winrm-py/blob/m
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/evil-winrm-py.svg)](https://repology.org/project/evil-winrm-py/versions)
 
-For above mentioned distributions, you can install `evil-winrm-py` directly from the package manager:
-
-```bash
-sudo apt update
-sudo apt install evil-winrm-py
-```
+For above mentioned distributions, you can install `evil-winrm-py` directly from their package managers. Thanks to the package maintainers for packaging and maintaining `evil-winrm-py` in their respective distributions.
 
 ## Usage
 
@@ -156,6 +156,8 @@ Menu:
 [+] download <remote_path> <local_path>                     - Download a file
 [+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
 [+] runps <local_path>.ps1                                  - Run a local PowerShell script on the remote host
+[+] loaddll <local_path>.dll                                - Load a local DLL (in-memory) as a module on the remote host
+[+] runexe <local_path>.exe [args]                          - Upload and execute (in-memory) a local EXE on the remote host
 [+] menu                                                    - Show this menu
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell

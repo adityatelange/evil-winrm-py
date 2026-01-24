@@ -12,6 +12,36 @@ evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD>
 
 Kerberos authentication supports both password-based and ticket-based authentication.
 
+#### Generate hosts file entry
+
+Use `netexec` to generate a hosts file entry for the target domain.
+
+```bash
+netexec smb sevenkingdoms.local --generate-hosts-file hosts.txt
+```
+
+Copy the content of `hosts.txt` to your `/etc/hosts` file.
+
+> [!IMPORTANT]
+> If you are adding an entry manually, ensure you follow the correct format for subdomains and fully qualified domain names (FQDNs). Kerberos uses SPNEGO, which relies on a specific algorithm to resolve hostnames. For more details, see [SPNEGO algorithm to resolve host names](https://www.ibm.com/docs/en/samfm/8.0.1?topic=spnego-algorithm-resolve-host-names).
+>
+> The format is as follows:
+>
+> ```
+> <IP> fully_qualified_hostname short_name
+> <IP> kingslanding.sevenkingdoms.local sevenkingdoms.local kingslanding
+> ```
+
+#### Generate krb5.conf file
+
+Use `netexec` to generate a `krb5.conf` file for the target domain.
+
+```bash
+netexec smb sevenkingdoms.local --generate-krb5-file krb5.conf
+```
+
+Sample `krb5.conf` file can be found [here](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/sample/krb5.conf).
+
 #### Password-based Kerberos Authentication
 
 This will request a Kerberos ticket and store it in memory for the session.
@@ -24,7 +54,7 @@ evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
 
 If you already have a Kerberos ticket (e.g., from `kinit`), you can use it directly without providing a password.
 
-Specify the `KRB5CCNAME` and `KRB5_CONFIG` environment variables to point to your Kerberos ticket cache and configuration file, respectively. Sample `krb5.conf` file can be found [here](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/sample/krb5.conf).
+Specify the `KRB5CCNAME` and `KRB5_CONFIG` environment variables to point to your Kerberos ticket cache and configuration file, respectively.
 
 ```bash
 export KRB5CCNAME=/path/to/your/krb5cc_file
@@ -153,6 +183,8 @@ Menu:
 [+] download <remote_path> <local_path>                     - Download a file
 [+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
 [+] runps <local_path>.ps1                                  - Run a local PowerShell script on the remote host
+[+] loaddll <local_path>.dll                                - Load a local DLL (in-memory) as a module on the remote host
+[+] runexe <local_path>.exe [args]                          - Upload and execute (in-memory) a local EXE on the remote host
 [+] menu                                                    - Show this menu
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell
@@ -195,6 +227,28 @@ You can run a local PowerShell script on the remote host using the `runps` comma
 
 ```bash
 evil-winrm-py PS C:\Users\Administrator\Documents> runps <local_path>.ps1
+```
+
+### Loading Local DLLs as PowerShell Modules
+
+You can load a local DLL file as a module on the remote host using the `loaddll` command. This will upload the specified DLL file in-memory and load it as a module. Note that this uses .NET's Reflection to load the DLL, so it may not work with all DLL files.
+
+This can be helpful when using tools like [ADModule](https://github.com/samratashok/ADModule).
+
+These Commands/Commandlets will be added to Command Suggestions so you can use them directly using the `Tab` key for auto-completion.
+
+```bash
+evil-winrm-py PS C:\Users\Administrator\Documents> loaddll <local_path>.dll
+```
+
+### Executing Local EXEs on the Remote Host
+
+You can upload and execute a local EXE file on the remote host using the `runexe` command. This will upload the specified EXE file in-memory and execute it with optional arguments. Note that this uses .NET's Reflection to load and execute the EXE, so it may not work with all EXE files.
+
+This can be helpful when using tools present in [SharpCollection](https://github.com/Flangvik/SharpCollection).
+
+```bash
+evil-winrm-py PS C:\Users\Administrator\Documents> runexe <local_path>.exe [args]
 ```
 
 ## Additional Options
