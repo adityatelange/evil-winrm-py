@@ -9,7 +9,6 @@ https://github.com/adityatelange/evil-winrm-py
 import argparse
 import base64
 import hashlib
-import importlib.util
 import json
 import logging
 import os
@@ -21,7 +20,7 @@ import tempfile
 import textwrap
 import time
 import traceback
-from importlib import resources
+from importlib import resources, util as importlib_util
 from pathlib import Path
 
 from prompt_toolkit import PromptSession, prompt
@@ -56,7 +55,7 @@ except ImportError:
 
 
 # check if mcp is installed
-is_mcp_available = importlib.util.find_spec("evil_winrm_py.mcp") is not None
+is_mcp_available = importlib_util.find_spec("mcp") is not None
 
 
 from evil_winrm_py import __version__

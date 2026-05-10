@@ -6,7 +6,13 @@
 
 
 import asyncio
+from importlib.util import find_spec
 from typing import Optional
+
+is_mcp_available = find_spec("mcp") is not None
+
+if not is_mcp_available:
+    pass  # MCP is an optional dependency.
 
 from mcp.server.fastmcp import FastMCP
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
