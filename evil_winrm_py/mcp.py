@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# This script is part of evil-winrm-py project https://github.com/adityatelange/evil-winrm-py
+# It implements the MCP server for evil-winrm-py, allowing clients to connect and execute WinRM commands remotely.
+
+
 import asyncio
-import os
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -205,6 +208,13 @@ def winrm_logout() -> str:
 
 # --- MCP Server Main Function ---
 def winrm_mcp(cli_args=None) -> int:
+    """
+    Start the FastMCP server for evil-winrm-py. This is the main entry point for running the MCP server.
+    Args:
+        cli_args: Optional command-line arguments to configure the MCP server. If None, defaults will be used.
+    Returns:
+        int: Exit code (0 for success, non-zero for errors).
+    """
     args = vars(cli_args) if cli_args is not None else {}
 
     transport = "streamable-http"
