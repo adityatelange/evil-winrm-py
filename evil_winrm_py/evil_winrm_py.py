@@ -9,6 +9,7 @@ https://github.com/adityatelange/evil-winrm-py
 import argparse
 import base64
 import hashlib
+import importlib.util
 import json
 import logging
 import os
@@ -54,13 +55,9 @@ except ImportError:
         pass
 
 
-# check if fastmcp is installed
-try:
-    from evil_winrm_py.mcp import winrm_mcp
+# check if mcp is installed
+is_mcp_available = importlib.util.find_spec("evil_winrm_py.mcp") is not None
 
-    is_mcp_available = True
-except ImportError:
-    is_mcp_available = False
 
 from evil_winrm_py import __version__
 from evil_winrm_py.pypsrp_ewp.wsman import WSManEWP
@@ -1518,6 +1515,8 @@ def main():
 
     if is_mcp_available:
         if args.mcp:
+            from evil_winrm_py.mcp import winrm_mcp
+
             return winrm_mcp(args)
         if not args.ip:
             parser.error(
