@@ -33,9 +33,12 @@ setup(
     extras_require={
         "kerberos": [
             "pypsrp[kerberos]==0.8.1",
-        ]
+        ],
+        "mcp": [
+            "mcp==1.27.0",
+        ],
     },
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     entry_points={
         "console_scripts": [
             "evil-winrm-py = evil_winrm_py.evil_winrm_py:main",

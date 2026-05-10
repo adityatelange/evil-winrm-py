@@ -54,6 +54,14 @@ except ImportError:
         pass
 
 
+# check if fastmcp is installed
+try:
+    from evil_winrm_py.mcp import winrm_mcp
+
+    is_mcp_available = True
+except ImportError:
+    is_mcp_available = False
+
 from evil_winrm_py import __version__
 from evil_winrm_py.pypsrp_ewp.wsman import WSManEWP
 
@@ -1488,8 +1496,29 @@ def main():
     parser.add_argument(
         "--version", action="version", version=__version__, help="show version"
     )
+    if is_mcp_available:
+        parser.add_argument(
+            "--mcp",
+            action="store_true",
+            help="start in MCP server in streamable HTTP mode (experimental feature, use with --mcp-port and --mcp-host to customize the server address and port if needed)",
+        )
+        parser.add_argument(
+            "--mcp-port",
+            type=int,
+            default=8000,
+            help="port for MCP streamable HTTP mode (default 8000)",
+        )
+        parser.add_argument(
+            "--mcp-host",
+            default="127.0.0.1",
+            help="host for MCP streamable HTTP mode (default 127.0.0.1)",
+        )
 
     args = parser.parse_args()
+
+    if is_mcp_available:
+        if args.mcp:
+            return winrm_mcp(args)
 
     # Set Default values
     auth = "ntlm"  # this can be 'negotiate'
