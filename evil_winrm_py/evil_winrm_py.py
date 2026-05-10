@@ -1451,7 +1451,7 @@ def main():
     parser.add_argument(
         "-i",
         "--ip",
-        required=True,
+        required=(False if is_mcp_available else True),
         help="remote host IP or hostname",
     )
     parser.add_argument("-u", "--user", help="username")
@@ -1519,6 +1519,11 @@ def main():
     if is_mcp_available:
         if args.mcp:
             return winrm_mcp(args)
+        if not args.ip:
+            parser.error(
+                "argument -i/--ip: expected one argument (unless --mcp is used)"
+            )
+            sys.exit(1)
 
     # Set Default values
     auth = "ntlm"  # this can be 'negotiate'
