@@ -209,6 +209,8 @@ def winrm_execute(command: str) -> str:
 @mcp.tool(annotations={"openWorldHint": True})
 def winrm_logout() -> str:
     """Close the current WinRM session."""
+    if _session.r_pool is None:
+        raise RuntimeError("Not logged in. Call winrm_login first.")
     return _session.logout()
 
 
