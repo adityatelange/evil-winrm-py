@@ -166,7 +166,7 @@ _session = _WinRMSession()
 
 
 # --- MCP Tools ---
-@mcp.tool()
+@mcp.tool(annotations={"openWorldHint": True})
 def winrm_login(
     ip: str,
     username: str,
@@ -200,13 +200,13 @@ def winrm_login(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations={"openWorldHint": True, "destructiveHint": True})
 def winrm_execute(command: str) -> str:
     """Run a command on the authenticated WinRM target and return its output."""
     return _session.execute(command)
 
 
-@mcp.tool()
+@mcp.tool(annotations={"openWorldHint": True})
 def winrm_logout() -> str:
     """Close the current WinRM session."""
     return _session.logout()
