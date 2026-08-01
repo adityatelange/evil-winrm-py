@@ -71,12 +71,12 @@ MENU_COMMANDS = {
         "info": "Show the running services (except system services)",
     },
     "upload": {
-        "syntax": "upload <local_path> <remote_path>",
-        "info": "Upload a file",
+        "syntax": "upload <local_path> [remote_path]",
+        "info": "Upload a file (defaults to current directory if remote_path omitted)",
     },
     "download": {
-        "syntax": "download <remote_path> <local_path>",
-        "info": "Download a file",
+        "syntax": "download <remote_path> [local_path]",
+        "info": "Download a file (defaults to current directory if local_path omitted)",
     },
     "loadps": {
         "syntax": "loadps <local_path>.ps1",
@@ -1229,13 +1229,13 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
             elif command_lower.startswith("download"):
                 command_parts = quoted_command_split(command)
-                if len(command_parts) < 3:
+                if len(command_parts) < 2:
                     print(
-                        RED + "[-] Usage: download <remote_path> <local_path>" + RESET
+                        RED + "[-] Usage: download <remote_path> [local_path]" + RESET
                     )
                     continue
                 remote_path = command_parts[1].strip('"')
-                local_path = command_parts[2].strip('"').strip("'")
+                local_path = command_parts[2].strip('"').strip("'") if len(command_parts) >= 3 else "."
 
                 remote_file, streams, had_errors = run_ps_cmd(
                     r_pool, f"(Resolve-Path -Path '{remote_path}').Path"
@@ -1263,11 +1263,11 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 continue
             elif command_lower.startswith("upload"):
                 command_parts = quoted_command_split(command)
-                if len(command_parts) < 3:
-                    print(RED + "[-] Usage: upload <local_path> <remote_path>" + RESET)
+                if len(command_parts) < 2:
+                    print(RED + "[-] Usage: upload <local_path> [remote_path]" + RESET)
                     continue
                 local_path = command_parts[1].strip('"').strip("'")
-                remote_path = command_parts[2].strip('"')
+                remote_path = command_parts[2].strip('"') if len(command_parts) >= 3 else "."
 
                 if not Path(local_path).expanduser().exists():
                     print(
