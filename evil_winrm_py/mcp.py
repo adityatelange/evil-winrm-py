@@ -27,9 +27,11 @@ mcp = FastMCP(
     "evil-winrm-py",
     instructions=(
         "WinRM remote shell MCP server over streamable-http only. "
-        "Call winrm_login first to authenticate, then use winrm_execute to run commands. "
-        "winrm_execute already runs the command via Invoke-Expression, "
-        "and winrm_logout closes the session when finished."
+        "Call winrm_login first to authenticate; it returns a session_id. "
+        "Use winrm_execute to run commands (via Invoke-Expression) and "
+        "winrm_logout to close a session when finished. "
+        "session_id is optional while only one session is active; pass it "
+        "explicitly once multiple sessions exist (see list_sessions)."
     ),
 )
 
@@ -84,7 +86,7 @@ class _WinRMSession:
             self.wsman.__enter__()  # WSManEWP does not support context manager, but we call __enter__ to establish the connection and authenticate
             self.r_pool = RunspacePool(self.wsman)
             self.r_pool.__enter__()  # RunspacePool does not support context manager, but we call __enter__ to create the runspace
-            return f"Connected to {ip}:{port} as {username}."
+            return True
         except (
             TypeError,
             ValueError,
@@ -162,7 +164,34 @@ class _WinRMSession:
             )
 
 
-_session = _WinRMSession()
+# Registry of active WinRM sessions keyed by an incrementing session id.
+_sessions: dict[int, _WinRMSession] = {}
+_next_session_id = 1
+
+
+def _resolve_session(session_id: Optional[int]) -> tuple[int, _WinRMSession]:
+    """Resolve the session to act on.
+
+    When ``session_id`` is omitted and exactly one session is active, that
+    session is used. When multiple sessions are active an explicit id is
+    required.
+    """
+    active = {sid: s for sid, s in _sessions.items() if s.r_pool is not None}
+    if not active:
+        raise RuntimeError("No active WinRM session. Call winrm_login first.")
+    if session_id is None:
+        if len(active) == 1:
+            return next(iter(active.items()))
+        raise RuntimeError(
+            "Multiple sessions are active (%s). Pass session_id to choose one."
+            % ", ".join(str(sid) for sid in active)
+        )
+    if session_id not in active:
+        raise RuntimeError(
+            "No active session with id %s. Active sessions: %s"
+            % (session_id, ", ".join(str(sid) for sid in active) or "none")
+        )
+    return session_id, active[session_id]
 
 
 # --- MCP Tools ---
@@ -182,8 +211,13 @@ def winrm_login(
     priv_key_pem: Optional[str] = None,
     cert_pem: Optional[str] = None,
 ) -> str:
-    """Authenticate to a remote Windows host over WinRM."""
-    return _session.login(
+    """Authenticate to a remote Windows host over WinRM.
+
+    Returns the session_id to pass to winrm_execute and winrm_logout.
+    """
+    global _next_session_id
+    session = _WinRMSession()
+    session.login(
         ip=ip,
         username=username,
         password=password,
@@ -198,20 +232,47 @@ def winrm_login(
         priv_key_pem=priv_key_pem,
         cert_pem=cert_pem,
     )
+    session_id = _next_session_id
+    _next_session_id += 1
+    _sessions[session_id] = session
+    return f"Connected to {ip}:{port} as {username}. session_id={session_id}"
+
+
+@mcp.tool(annotations={"openWorldHint": True, "readOnlyHint": True})
+def list_sessions() -> str:
+    """List all active WinRM sessions and their session_id."""
+    lines = []
+    for sid, session in _sessions.items():
+        if session.r_pool is not None:
+            t = session.wsman.transport
+            lines.append(
+                f"Session {sid}: connected to {t.server}:{t.port} as {t.username}"
+            )
+    if not lines:
+        return "No active sessions."
+    return "\n".join(lines)
 
 
 @mcp.tool(annotations={"openWorldHint": True, "destructiveHint": True})
-def winrm_execute(command: str) -> str:
-    """Run a command on the authenticated WinRM target and return its output."""
-    return _session.execute(command)
+def winrm_execute(command: str, session_id: Optional[int] = None) -> str:
+    """Run a command on an authenticated WinRM target and return its output.
+
+    session_id is optional when only one session is active.
+    """
+    _, session = _resolve_session(session_id)
+    return session.execute(command)
 
 
 @mcp.tool(annotations={"openWorldHint": True})
-def winrm_logout() -> str:
-    """Close the current WinRM session."""
-    if _session.r_pool is None:
-        raise RuntimeError("Not logged in. Call winrm_login first.")
-    return _session.logout()
+def winrm_logout(session_id: Optional[int] = None) -> str:
+    """Close a WinRM session.
+
+    session_id is optional when only one session is active.
+    """
+    sid, session = _resolve_session(session_id)
+    session.logout()
+    _sessions.pop(sid, None)
+    return f"WinRM session {sid} closed."
 
 
 # --- MCP Server Main Function ---
