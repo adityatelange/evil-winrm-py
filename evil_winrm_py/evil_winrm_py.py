@@ -1521,7 +1521,6 @@ def main():
             parser.error(
                 "argument -i/--ip: expected one argument (unless --mcp is used)"
             )
-            sys.exit(1)
 
     # Set Default values
     auth = "ntlm"  # this can be 'negotiate'
