@@ -35,7 +35,7 @@ setup(
             "pypsrp[kerberos]==0.8.1",
         ],
         "mcp": [
-            "mcp==1.27.0",
+            "mcp==2.0.0",
         ],
     },
     python_requires=">=3.10",

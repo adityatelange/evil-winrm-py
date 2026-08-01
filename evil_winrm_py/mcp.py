@@ -8,7 +8,7 @@
 import asyncio
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
 from pypsrp.powershell import PowerShell, RunspacePool
 from requests.exceptions import ConnectionError
@@ -16,8 +16,8 @@ from spnego.exceptions import NoCredentialError, OperationNotAvailableError, Spn
 
 from evil_winrm_py.pypsrp_ewp.wsman import SUPPORTED_AUTHS, WSManEWP
 
-# --- FastMCP server instance ---
-mcp = FastMCP(
+# --- MCPServer instance ---
+mcp = MCPServer(
     "evil-winrm-py",
     instructions=(
         "WinRM remote shell MCP server over streamable-http only. "
@@ -276,7 +276,7 @@ def winrm_logout(session_id: Optional[int] = None) -> str:
 # --- MCP Server Main Function ---
 def winrm_mcp(cli_args=None) -> int:
     """
-    Start the FastMCP server for evil-winrm-py. This is the main entry point for running the MCP server.
+    Start the MCP server for evil-winrm-py. This is the main entry point for running the MCP server.
     Args:
         cli_args: Optional command-line arguments to configure the MCP server. If None, defaults will be used.
     Returns:
@@ -288,15 +288,11 @@ def winrm_mcp(cli_args=None) -> int:
     host = args.get("mcp_host") or "127.0.0.1"
     port = args.get("mcp_port") or 8000
 
-    # FastMCP uses internal settings for network bind values.
-    mcp.settings.host = host
-    mcp.settings.port = port
-
     print(f"[evil-winrm-py MCP] Listening on http://{host}:{port}/mcp")
     print("[evil-winrm-py MCP] Add this URL to your MCP client to connect.")
 
     try:
-        mcp.run(transport=transport)
+        mcp.run(transport=transport, host=host, port=port)
     except (asyncio.exceptions.CancelledError, KeyboardInterrupt):
         print("\n[evil-winrm-py MCP] Shutting down...")
     except Exception as exc:
