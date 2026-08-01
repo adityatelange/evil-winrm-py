@@ -6,13 +6,7 @@
 
 
 import asyncio
-from importlib.util import find_spec
 from typing import Optional
-
-is_mcp_available = find_spec("mcp") is not None
-
-if not is_mcp_available:
-    pass  # MCP is an optional dependency.
 
 from mcp.server.fastmcp import FastMCP
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
@@ -59,7 +53,7 @@ class _WinRMSession:
         spn_hostname: Optional[str] = None,
         priv_key_pem: Optional[str] = None,
         cert_pem: Optional[str] = None,
-    ) -> str:
+    ) -> bool:
         if self.r_pool is not None:
             self.logout()
         self._validate_auth(auth)
@@ -110,7 +104,11 @@ class _WinRMSession:
         ps = PowerShell(self.r_pool)
         ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
         ps.add_cmdlet("Out-String").add_parameter("Stream")
-        ps.invoke()
+        try:
+            ps.invoke()
+        except (WinRMTransportError, WSManFaultError, ConnectionError) as exc:
+            self._cleanup()
+            raise RuntimeError(str(exc)) from exc
         stdout = "\n".join(ps.output)
         if ps.had_errors and ps.streams.error:
             stderr = "\n".join(e._to_string for e in ps.streams.error)
