@@ -20,7 +20,7 @@ import tempfile
 import textwrap
 import time
 import traceback
-from importlib import resources
+from importlib import resources, util as importlib_util
 from pathlib import Path
 
 from prompt_toolkit import PromptSession, prompt
@@ -52,6 +52,10 @@ except ImportError:
     # If kerberos is not available, define a dummy exception
     class Krb5Error(Exception):
         pass
+
+
+# check if mcp is installed
+is_mcp_available = importlib_util.find_spec("mcp") is not None
 
 
 from evil_winrm_py import __version__
@@ -1443,7 +1447,7 @@ def main():
     parser.add_argument(
         "-i",
         "--ip",
-        required=True,
+        required=(False if is_mcp_available else True),
         help="remote host IP or hostname",
     )
     parser.add_argument("-u", "--user", help="username")
@@ -1488,8 +1492,35 @@ def main():
     parser.add_argument(
         "--version", action="version", version=__version__, help="show version"
     )
+    if is_mcp_available:
+        parser.add_argument(
+            "--mcp",
+            action="store_true",
+            help="start in MCP server in streamable HTTP mode (experimental feature, use with --mcp-port and --mcp-host to customize the server address and port if needed)",
+        )
+        parser.add_argument(
+            "--mcp-port",
+            type=int,
+            default=8000,
+            help="port for MCP streamable HTTP mode (default 8000)",
+        )
+        parser.add_argument(
+            "--mcp-host",
+            default="127.0.0.1",
+            help="host for MCP streamable HTTP mode (default 127.0.0.1)",
+        )
 
     args = parser.parse_args()
+
+    if is_mcp_available:
+        if args.mcp:
+            from evil_winrm_py.mcp import winrm_mcp
+
+            return winrm_mcp(args)
+        if not args.ip:
+            parser.error(
+                "argument -i/--ip: expected one argument (unless --mcp is used)"
+            )
 
     # Set Default values
     auth = "ntlm"  # this can be 'negotiate'
