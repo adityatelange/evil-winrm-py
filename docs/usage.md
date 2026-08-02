@@ -260,6 +260,36 @@ This can be helpful when using tools present in [SharpCollection](https://github
 evil-winrm-py PS C:\Users\Administrator\Documents> runexe <local_path>.exe [args]
 ```
 
+## MCP Server Mode
+
+`evil-winrm-py` can optionally run as an MCP (Model Context Protocol) server, exposing WinRM login/execute/logout as tools for MCP-compatible clients over streamable HTTP. This requires the `mcp` extra (see [Installation Guide](install.md)) and Python 3.10+.
+
+```bash
+evil-winrm-py --mcp
+```
+
+By default, the server listens on `127.0.0.1:8000`. You can customize the address with `--mcp-host` and `--mcp-port`:
+
+```bash
+evil-winrm-py --mcp --mcp-host 0.0.0.0 --mcp-port 8000
+```
+
+Add the resulting URL (e.g. `http://127.0.0.1:8000/mcp`) to your MCP client to connect.
+
+Available tools:
+
+```bash
+winrm_login    - Authenticate to a remote host over WinRM, returns a session_id
+winrm_execute  - Run a command (via Invoke-Expression) on an authenticated session
+winrm_logout   - Close a WinRM session
+list_sessions  - List all active WinRM sessions
+```
+
+`winrm_login` accepts the same authentication options as the CLI (NTLM, Pass-the-Hash, Certificate, Kerberos-related SPN options, SSL, custom URI/user-agent, etc.). `session_id` is optional for `winrm_execute`/`winrm_logout` while only one session is active; once multiple sessions exist, pass it explicitly (use `list_sessions` to see active session IDs).
+
+> [!NOTE]
+> This is an experimental feature. Since it allows remote command execution on Windows hosts via MCP tools, only expose it on trusted networks and to trusted MCP clients.
+
 ## Additional Options
 
 ### Using No Colors

@@ -28,6 +28,21 @@ sudo apt install gcc python3-dev libkrb5-dev krb5-pkinit
 > [!NOTE]
 > `[kerberos]` is an optional dependency that includes the necessary packages for Kerberos authentication support. If you do not require Kerberos authentication, you can install `evil-winrm-py` without this extra.
 
+## Installation of MCP Server Dependencies
+
+> [!NOTE]
+> MCP server support has not been published to PyPI yet, so the `[mcp]` extra is only available when installing from the latest commit on GitHub (see below). It requires Python 3.10 or higher.
+
+```bash
+pip install 'evil-winrm-py[mcp] @ git+https://github.com/adityatelange/evil-winrm-py'
+# or
+pipx install 'evil-winrm-py[mcp] @ git+https://github.com/adityatelange/evil-winrm-py'
+# or
+uv tool install 'git+https://github.com/adityatelange/evil-winrm-py[mcp]'
+```
+
+Once a release including MCP support is published, `pip install evil-winrm-py[mcp]` (see [`--mcp`](usage.md#mcp-server-mode)) will work directly from PyPI. If you do not need MCP server support, you can install `evil-winrm-py` without this extra.
+
 ## Using `pip`
 
 You can install the package directly from PyPI using pip:

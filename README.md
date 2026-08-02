@@ -37,6 +37,7 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Load local DLLs (in-memory) as PowerShell modules on the remote host. 🆕
 - Upload and execute local EXEs (in-memory) on the remote host. 🆕
 - List the running services (except system services) on the remote host. 🆕
+- Optional MCP server mode to expose WinRM login/execute/logout as tools for MCP clients, with support for multiple concurrent sessions. 🆕
 - Enable logging and debugging for better traceability.
 - Navigate command history using `up`/`down` arrow keys.
 - Display colorized output for improved readability.
@@ -81,6 +82,7 @@ or if you want to install with latest commit from the main branch you can do so 
 git clone https://github.com/adityatelange/evil-winrm-py
 cd evil-winrm-py
 pip install .
+pip install .[mcp] # for optional MCP server support (requires Python 3.10+), not yet released on PyPI
 ```
 
 ### Update
@@ -112,7 +114,8 @@ usage: evil-winrm-py [-h] -i IP [-u USER] [-p PASSWORD] [-H HASH]
                      [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI]
                      [--ua UA] [--port PORT] [--spn-prefix SPN_PREFIX]
                      [--spn-hostname SPN_HOSTNAME] [-k] [--no-pass] [--ssl] [--log]
-                     [--debug] [--no-colors] [--version]
+                     [--debug] [--no-colors] [--version] [--mcp] [--mcp-port MCP_PORT]
+                     [--mcp-host MCP_HOST]
 
 options:
   -h, --help            show this help message and exit
@@ -138,6 +141,12 @@ options:
   --debug               enable debug logging
   --no-colors           disable colors
   --version             show version
+  --mcp                 start in MCP server in streamable HTTP mode (experimental
+                        feature, requires the `mcp` extra, use with --mcp-port
+                        and --mcp-host to customize the server address and
+                        port if needed)
+  --mcp-port MCP_PORT   port for MCP streamable HTTP mode (default 8000)
+  --mcp-host MCP_HOST   host for MCP streamable HTTP mode (default 127.0.0.1)
 
 For more information about this project, visit https://github.com/adityatelange/evil-winrm-py
 For user guide, visit https://github.com/adityatelange/evil-winrm-py/blob/main/docs/usage.md
@@ -148,6 +157,19 @@ Example:
 ```bash
 evil-winrm-py -i 192.168.1.100 -u Administrator -p P@ssw0rd --ssl
 ```
+
+### MCP Server Mode
+
+With the `mcp` extra installed, you can run `evil-winrm-py` as an MCP server, exposing WinRM login/execute/logout as tools for MCP-compatible clients (e.g. Claude, other AI agents) over streamable HTTP. It supports multiple concurrent WinRM sessions via a `session_id`.
+
+```bash
+evil-winrm-py --mcp
+# or customize the address:
+evil-winrm-py --mcp --mcp-host 0.0.0.0 --mcp-port 8000
+```
+
+> [!NOTE]
+> This is an experimental feature. Since it allows remote command execution on Windows hosts via MCP tools, only expose it on trusted networks and to trusted MCP clients.
 
 ## Menu Commands (inside evil-winrm-py shell)
 
