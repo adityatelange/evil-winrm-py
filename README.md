@@ -5,7 +5,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/evil-winrm-py)](https://pypi.org/project/evil-winrm-py/)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![License](https://img.shields.io/github/license/adityatelange/evil-winrm-py)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/evil-winrm-py?label=pypi%20downloads)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/evil-winrm-py?period=monthly&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=BLUE&left_text=downloads%2Fmonth)](https://pepy.tech/projects/evil-winrm-py)
 [![Github Wiki](https://img.shields.io/badge/github-wiki%2Fdocs-blue)](https://github.com/adityatelange/evil-winrm-py/wiki)
 
 </div>
@@ -195,7 +195,3 @@ Note: Use absolute paths for upload/download for reliability.
 - Prompt Toolkit - https://github.com/prompt-toolkit/python-prompt-toolkit
 - tqdm - https://github.com/tqdm/tqdm
 - Thanks to [Github Coplilot](https://github.com/features/copilot) and [Google Gemini](https://gemini.google.com/app) for code suggestions and improvements.
-
-## Stargazers over time
-
-[![Stargazers over time](https://starchart.cc/adityatelange/evil-winrm-py.svg?background=%23ffffff00&axis=%23858585&line=%236b63ff)](https://starchart.cc/adityatelange/evil-winrm-py)
