@@ -282,6 +282,41 @@ def build_cmdlet_pipeline(ps: PowerShell, command: str) -> bool:
     return True
 
 
+def format_ps_object(obj) -> str:
+    """Render a PSRP output object to text for display in JEA mode.
+
+    JEA (NoLanguage) endpoints rarely expose Out-String/Format-* cmdlets, so
+    the remote pipeline can't format objects for us. pypsrp still deserializes
+    them into objects carrying their properties, so we format client-side:
+
+    - If the object stringifies to something meaningful (e.g. an IP address),
+      use that.
+    - If it only stringifies to its .NET type name (e.g.
+      'Microsoft.PowerShell.Commands.GenericMeasureInfo'), dump its properties
+      as aligned 'Name : Value' lines, like Format-List does.
+    """
+    props = {}
+    for attr in ("adapted_properties", "extended_properties"):
+        props.update(getattr(obj, attr, None) or {})
+
+    text = str(obj)
+    # PowerShell's ToString() falls back to the .NET type name when an object
+    # has no custom string form (e.g. GenericMeasureInfo). Detect that by
+    # comparing against the object's own declared types, rather than guessing
+    # from the shape of the text (an IP or version number is "dotted" too).
+    type_names = getattr(obj, "types", None) or []
+    is_type_name = not text or text in type_names
+
+    if props and is_type_name:
+        width = max(len(str(k)) for k in props)
+        lines = []
+        for key, value in props.items():
+            value_str = "" if value is None else str(value)
+            lines.append(f"{str(key):<{width}} : {value_str}")
+        return "\n".join(lines)
+    return text
+
+
 def run_ps_cmd(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
     """Runs a PowerShell command and returns the output, streams, and error status."""
     log.info("Executing command: {}".format(command))
@@ -290,7 +325,8 @@ def run_ps_cmd(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
         if not build_cmdlet_pipeline(ps, command):
             return "", [], False
         ps.invoke()
-        return "\n".join(str(line) for line in ps.output), ps.streams, ps.had_errors
+        rendered = "\n".join(format_ps_object(line) for line in ps.output)
+        return rendered, ps.streams, ps.had_errors
     else:
         ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
         ps.add_cmdlet("Out-String").add_parameter("Stream")
@@ -1582,10 +1618,17 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                             ps.poll_invoke()
                         output = ps.output
                         for line in output[cursor:]:
-                            print(str(line))
+                            print(format_ps_object(line) if JEA_MODE else line)
                         cursor = len(output)
                     log.info("Command execution completed.")
-                    log.info("Output: {}".format("\n".join(str(l) for l in output)))
+                    log.info(
+                        "Output: {}".format(
+                            "\n".join(
+                                format_ps_object(o) if JEA_MODE else str(o)
+                                for o in output
+                            )
+                        )
+                    )
 
                     if ps.streams.error:
                         for error in ps.streams.error:
