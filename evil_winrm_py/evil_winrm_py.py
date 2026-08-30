@@ -69,42 +69,52 @@ MENU_COMMANDS = {
     "services": {
         "syntax": "services",
         "info": "Show the running services (except system services)",
+        "jea": False,
     },
     "upload": {
         "syntax": "upload <local_path> [remote_path]",
         "info": "Upload a file (defaults to current directory if remote_path omitted)",
+        "jea": False,
     },
     "download": {
         "syntax": "download <remote_path> [local_path]",
         "info": "Download a file (defaults to current directory if local_path omitted)",
+        "jea": False,
     },
     "loadps": {
         "syntax": "loadps <local_path>.ps1",
         "info": "Load PowerShell functions from a local script",
+        "jea": False,
     },
     "runps": {
         "syntax": "runps <local_path>.ps1",
         "info": "Run a local PowerShell script on the remote host",
+        "jea": False,
     },
     "loaddll": {
         "syntax": "loaddll <local_path>.dll",
         "info": "Load a local DLL (in-memory) as a module on the remote host",
+        "jea": False,
     },
     "runexe": {
         "syntax": "runexe <local_path>.exe [args]",
         "info": "Upload and execute (in-memory) a local EXE on the remote host",
+        "jea": False,
     },
     "menu": {
         "syntax": "menu",
         "info": "Show this menu",
+        "jea": True,
     },
     "clear": {
         "syntax": "clear, cls",
         "info": "Clear the screen",
+        "jea": True,
     },
     "exit": {
         "syntax": "exit",
         "info": "Exit the shell",
+        "jea": True,
     },
 }
 COMMAND_SUGGESTIONS = []
@@ -120,6 +130,7 @@ YELLOW = "\033[33m"
 BLUE = "\033[34m"
 MAGENTA = "\033[35m"
 CYAN = "\033[36m"
+GREY = "\033[90m"
 BOLD = "\033[1m"
 
 
@@ -302,12 +313,27 @@ def get_prompt(r_pool: RunspacePool) -> str:
     return "PS ?> "  # Fallback prompt
 
 
+def get_menu_command_names() -> list[str]:
+    """Menu command names available in the current mode. In JEA mode, only
+    commands flagged with "jea": True are included."""
+    return [name for name, cmd in MENU_COMMANDS.items() if not JEA_MODE or cmd["jea"]]
+
+
 def show_menu() -> None:
     """Displays the help menu for interactive commands."""
     print(BOLD + "\nMenu:" + RESET)
     for command in MENU_COMMANDS.values():
-        print(f"{CYAN}[+] {command['syntax']:<55} - {command['info']}{RESET}")
-    print("Note: Use absolute paths for upload/download for reliability.\n")
+        disabled = JEA_MODE and not command["jea"]
+        color = GREY if disabled else CYAN
+        tag = "(Disabled) " if disabled else ""
+        print(f"{color}[+] {command['syntax']:<55} - {tag}{command['info']}{RESET}")
+    if JEA_MODE:
+        print(
+            "Note: Type cmdlet pipelines directly "
+            "(e.g. Get-Service | Select-Object -First 5).\n"
+        )
+    else:
+        print("Note: Use absolute paths for upload/download for reliability.\n")
 
 
 def get_directory_and_partial_name(text: str, sep: str) -> tuple[str, str]:
@@ -457,7 +483,7 @@ class CommandPathCompleter(Completer):
         tokens = text_before_cursor.split(maxsplit=1)
 
         if not tokens:  # Empty input, suggest all commands
-            for cmd_sugg in list(MENU_COMMANDS.keys()) + COMMAND_SUGGESTIONS:
+            for cmd_sugg in get_menu_command_names() + COMMAND_SUGGESTIONS:
                 yield Completion(cmd_sugg, start_position=0, display=cmd_sugg)
             return
 
@@ -493,7 +519,7 @@ class CommandPathCompleter(Completer):
         if len(tokens) == 1 and not text_before_cursor.endswith(" "):
             # User is typing the command, -> "downl"
             seen_commands = set()
-            for cmd_sugg in list(MENU_COMMANDS.keys()) + COMMAND_SUGGESTIONS:
+            for cmd_sugg in get_menu_command_names() + COMMAND_SUGGESTIONS:
                 if cmd_sugg.startswith(command_typed_part):
                     seen_commands.add(cmd_sugg.lower())
                     yield Completion(
@@ -1342,7 +1368,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 log.info("Displaying menu.")
                 show_menu()
                 continue
-            elif command_lower == "services":
+            elif not JEA_MODE and command_lower == "services":
                 log.info("Displaying services.")
                 get_services_command = (
                     "Get-ItemProperty 'Registry::HKLM\\System\\CurrentControlSet\\Services\\*' -ErrorAction "
@@ -1356,7 +1382,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 print(services)
                 continue
 
-            elif command_lower.startswith("download"):
+            elif not JEA_MODE and command_lower.startswith("download"):
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(
@@ -1390,7 +1416,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 download_file(r_pool, remote_file, str(local_path))
                 continue
-            elif command_lower.startswith("upload"):
+            elif not JEA_MODE and command_lower.startswith("upload"):
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: upload <local_path> [remote_path]" + RESET)
@@ -1421,7 +1447,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     r_pool, str(Path(local_path).expanduser().resolve()), remote_path
                 )
                 continue
-            elif command_lower.startswith("loadps"):
+            elif not JEA_MODE and command_lower.startswith("loadps"):
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: loadps <local_path>" + RESET)
@@ -1446,7 +1472,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 load_ps(r_pool, local_path)
                 continue
-            elif command_lower.startswith("runps"):
+            elif not JEA_MODE and command_lower.startswith("runps"):
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: runps <local_path>" + RESET)
@@ -1471,7 +1497,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 run_ps(r_pool, local_path)
                 continue
-            elif command_lower.startswith("loaddll"):
+            elif not JEA_MODE and command_lower.startswith("loaddll"):
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: loaddll <local_path>" + RESET)
@@ -1491,7 +1517,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     continue
                 load_dll(r_pool, local_path)
                 continue
-            elif command_lower.startswith("runexe"):
+            elif not JEA_MODE and command_lower.startswith("runexe"):
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: runexe <local_path> [args]" + RESET)
@@ -1671,8 +1697,8 @@ def main():
 
     # --- Run checks on provided arguments ---
     if args.no_colors:
-        global RESET, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, BOLD
-        RESET = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = BOLD = ""
+        global RESET, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GREY, BOLD
+        RESET = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = GREY = BOLD = ""
 
     if args.cert_pem or args.priv_key_pem:
         auth = "certificate"
