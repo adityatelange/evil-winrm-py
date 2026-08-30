@@ -108,6 +108,8 @@ MENU_COMMANDS = {
     },
 }
 COMMAND_SUGGESTIONS = []
+JEA_MODE = False
+PS_PARAM_RE = re.compile(r"^-([A-Za-z_][A-Za-z0-9_]*):?$")
 
 # --- Colors ---
 # ANSI escape codes for colored output
@@ -153,18 +155,145 @@ class DelayedKeyboardInterrupt:
             self.old_handler(*self.signal_received)
 
 
+def tokenize_ps_line(line: str) -> list[str]:
+    """
+    Splits a command line into tokens on whitespace, emitting unquoted '|'
+    and ';' as their own separator tokens. A single- or double-quoted span
+    becomes one token with its quotes stripped; the only recognized escape
+    is the closing quote itself.
+    """
+    tokens = []
+    current = []
+    i, n = 0, len(line)
+
+    def flush():
+        if current:
+            tokens.append("".join(current))
+            current.clear()
+
+    while i < n:
+        ch = line[i]
+        if ch in ("'", '"'):
+            quote = ch
+            j = i + 1
+            while j < n and line[j] != quote:
+                current.append(line[j])
+                j += 1
+            i = j + 1
+            continue
+        if ch.isspace():
+            flush()
+            i += 1
+            continue
+        if ch in ("|", ";"):
+            flush()
+            tokens.append(ch)
+            i += 1
+            continue
+        current.append(ch)
+        i += 1
+    flush()
+    return tokens
+
+
+def split_ps_statements(tokens: list[str]) -> list[list[list[str]]]:
+    """
+    Groups tokens from tokenize_ps_line into a nested structure:
+    statements (split on ';') -> pipeline stages (split on '|') -> the
+    tokens of each stage (a cmdlet name followed by its arguments).
+    """
+    statements = []
+    stages = []
+    stage_tokens = []
+
+    def flush_stage():
+        if stage_tokens:
+            stages.append(list(stage_tokens))
+            stage_tokens.clear()
+
+    def flush_statement():
+        flush_stage()
+        if stages:
+            statements.append(list(stages))
+            stages.clear()
+
+    for tok in tokens:
+        if tok == "|":
+            flush_stage()
+        elif tok == ";":
+            flush_statement()
+        else:
+            stage_tokens.append(tok)
+    flush_statement()
+    return statements
+
+
+def build_cmdlet_pipeline(ps: PowerShell, command: str) -> bool:
+    """
+    Parses `command` into one or more cmdlet pipelines and adds them to `ps`
+    via add_cmdlet/add_argument/add_parameter/add_statement, i.e. as
+    structured PSRP invocations rather than script text. This is what makes
+    it work against NoLanguage-mode JEA endpoints, which reject the script
+    text that Invoke-Expression and add_script() rely on.
+
+    Only plain `Cmdlet -Param value` pipelines are handled. Scriptblocks,
+    variables, operators and other language constructs are unavailable in
+    NoLanguage mode, so there is no way to express them here.
+
+    Returns True if at least one statement was added to the pipeline.
+    """
+    statements = split_ps_statements(tokenize_ps_line(command))
+    if not statements:
+        return False
+
+    for statement_index, stages in enumerate(statements):
+        if statement_index > 0:
+            ps.add_statement()
+        for stage_tokens in stages:
+            cmdlet, *arg_tokens = stage_tokens
+            ps.add_cmdlet(cmdlet)
+            i, n = 0, len(arg_tokens)
+            while i < n:
+                tok = arg_tokens[i]
+                match = PS_PARAM_RE.match(tok)
+                if match:
+                    name = match.group(1)
+                    has_value = i + 1 < n and not PS_PARAM_RE.match(arg_tokens[i + 1])
+                    if has_value:
+                        ps.add_parameter(name, arg_tokens[i + 1])
+                        i += 2
+                    else:
+                        ps.add_parameter(name)
+                        i += 1
+                else:
+                    ps.add_argument(tok)
+                    i += 1
+    return True
+
+
 def run_ps_cmd(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
     """Runs a PowerShell command and returns the output, streams, and error status."""
     log.info("Executing command: {}".format(command))
     ps = PowerShell(r_pool)
-    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
-    ps.add_cmdlet("Out-String").add_parameter("Stream")
+    if JEA_MODE:
+        if not build_cmdlet_pipeline(ps, command):
+            return "", [], False
+        ps.invoke()
+        return "\n".join(str(line) for line in ps.output), ps.streams, ps.had_errors
+    else:
+        ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+        ps.add_cmdlet("Out-String").add_parameter("Stream")
     ps.invoke()
     return "\n".join(ps.output), ps.streams, ps.had_errors
 
 
 def get_prompt(r_pool: RunspacePool) -> str:
     """Returns the prompt string for the interactive shell."""
+    if JEA_MODE:
+        # A JEA session offers no reliable way to read the working directory:
+        # $pwd.Path is a property expression (blocked in NoLanguage mode)
+        # use a static prompt.
+        return f"{RED}evil-winrm-py{RESET} {MAGENTA}{BOLD}JEA{RESET} PS> "
     output, streams, had_errors = run_ps_cmd(
         r_pool, "$pwd.Path"
     )  # Get current working directory
@@ -1392,8 +1521,14 @@ def interactive_shell(r_pool: RunspacePool) -> None:
             else:
                 try:
                     ps = PowerShell(r_pool)
-                    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
-                    ps.add_cmdlet("Out-String").add_parameter("Stream")
+                    if JEA_MODE:
+                        if not build_cmdlet_pipeline(ps, command):
+                            continue
+                    else:
+                        ps.add_cmdlet("Invoke-Expression").add_parameter(
+                            "Command", command
+                        )
+                        ps.add_cmdlet("Out-String").add_parameter("Stream")
                     ps.begin_invoke()
                     log.info("Executing command: {}".format(command))
 
@@ -1403,10 +1538,10 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                             ps.poll_invoke()
                         output = ps.output
                         for line in output[cursor:]:
-                            print(line)
+                            print(str(line))
                         cursor = len(output)
                     log.info("Command execution completed.")
-                    log.info("Output: {}".format("\n".join(output)))
+                    log.info("Output: {}".format("\n".join(str(l) for l in output)))
 
                     if ps.streams.error:
                         for error in ps.streams.error:
@@ -1462,6 +1597,13 @@ def main():
         help="local path to certificate PEM file",
     )
     parser.add_argument("--uri", default="wsman", help="wsman URI (default: /wsman)")
+    parser.add_argument(
+        "-c",
+        "--configuration-name",
+        default="Microsoft.PowerShell",
+        help="session configuration (JEA endpoint) to connect to "
+        '(default: "Microsoft.PowerShell")',
+    )
     parser.add_argument(
         "--ua",
         default="Microsoft WinRM Client",
@@ -1655,6 +1797,32 @@ def main():
             log.info("[*] Connecting to '{}:{}'".format(args.ip, args.port))
             print(BLUE + "[*] Connecting to '{}:{}'".format(args.ip, args.port) + RESET)
 
+        if args.configuration_name != "Microsoft.PowerShell":
+            global JEA_MODE
+            JEA_MODE = True
+            log.info(
+                "[*] Using session configuration (JEA endpoint): '{}'".format(
+                    args.configuration_name
+                )
+            )
+            print(
+                BLUE
+                + "[*] Using session configuration (JEA endpoint): '{}'".format(
+                    args.configuration_name
+                )
+                + RESET
+            )
+            print(
+                MAGENTA
+                + "[%] Commands are dispatched as direct cmdlet pipelines "
+                "(Cmdlet -Param value | Cmdlet2), since JEA endpoints commonly "
+                "reject script text (Invoke-Expression, scriptblocks, "
+                "variables). Some interactive shell features that rely on "
+                "scripting (e.g. 'services', tab-completion, upload/download "
+                "path resolution) may not work on such endpoints."
+                + RESET
+            )
+
         with WSManEWP(
             server=args.ip,
             port=args.port,
@@ -1671,7 +1839,9 @@ def main():
             certificate_pem=args.cert_pem,
             user_agent=args.ua,
         ) as wsman:
-            with RunspacePool(wsman) as r_pool:
+            with RunspacePool(
+                wsman, configuration_name=args.configuration_name
+            ) as r_pool:
                 interactive_shell(r_pool)
     except (KeyboardInterrupt, EOFError):
         sys.exit(0)
