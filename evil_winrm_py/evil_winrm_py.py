@@ -372,6 +372,11 @@ def get_remote_path_suggestions(
     and the partial name entered by the user.
     """
 
+    if JEA_MODE:
+        # Path completion needs script blocked in NoLanguage mode, and JEA
+        # endpoints disable the filesystem provider by default. Skip it.
+        return []
+
     exp = "FullName"
     attrs = ""
     if not re.match(r"^[a-zA-Z]:", directory_prefix):
@@ -400,6 +405,19 @@ def get_remote_command_suggestions(
     Returns a list of remote PowerShell command names (cmdlets/aliases) that start
     with the provided prefix.
     """
+
+    if JEA_MODE:
+        # NoLanguage mode rejects the script below, so call Get-Command (a
+        # default RestrictedRemoteServer command) directly
+        ps = PowerShell(r_pool)
+        pattern = f"{command_prefix}*" if command_prefix else "*"
+
+        ps.add_cmdlet("Get-Command").add_parameter("Name", pattern)
+        ps.invoke()
+        if ps.had_errors:
+            return []
+        names = {str(o).strip() for o in ps.output if str(o).strip()}
+        return sorted(names)
 
     prefix_literal = _ps_single_quote(command_prefix or "")
     ps_script = textwrap.dedent(
@@ -1839,14 +1857,9 @@ def main():
                 + RESET
             )
             print(
-                MAGENTA
-                + "[%] Commands are dispatched as direct cmdlet pipelines "
-                "(Cmdlet -Param value | Cmdlet2), since JEA endpoints commonly "
-                "reject script text (Invoke-Expression, scriptblocks, "
-                "variables). Some interactive shell features that rely on "
-                "scripting (e.g. 'services', tab-completion, upload/download "
-                "path resolution) may not work on such endpoints."
-                + RESET
+                MAGENTA + "[%] JEA mode: commands run as direct cmdlet pipelines "
+                "(Cmdlet -Param value | Cmdlet2). Run 'Get-Command' to see "
+                "which cmdlets this endpoint allows." + RESET
             )
 
         with WSManEWP(
