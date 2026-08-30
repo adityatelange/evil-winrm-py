@@ -53,6 +53,7 @@ Includes support for:
 - SSL to secure communication with the remote host.
 - custom WSMan URIs.
 - custom user agent for the WinRM client.
+- connecting to Just Enough Administration (JEA) session configurations.
 
 Detailed documentation can be found in the [docs](https://github.com/adityatelange/evil-winrm-py/blob/main/docs) directory.
 
@@ -112,7 +113,7 @@ Details on how to use `evil-winrm-py` can be found in the [Usage Guide](https://
 ```bash
 usage: evil-winrm-py [-h] -i IP [-u USER] [-p PASSWORD] [-H HASH]
                      [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI]
-                     [--ua UA] [--port PORT] [--spn-prefix SPN_PREFIX]
+                     [-c CONFIGURATION_NAME] [--ua UA] [--port PORT] [--spn-prefix SPN_PREFIX]
                      [--spn-hostname SPN_HOSTNAME] [-k] [--no-pass] [--ssl] [--log]
                      [--debug] [--no-colors] [--version] [--mcp] [--mcp-port MCP_PORT]
                      [--mcp-host MCP_HOST]
@@ -128,6 +129,9 @@ options:
                         local path to private key PEM file
   --cert-pem CERT_PEM   local path to certificate PEM file
   --uri URI             wsman URI (default: /wsman)
+  -c, --configuration-name CONFIGURATION_NAME
+                        session configuration (JEA endpoint) to connect to
+                        (default: "Microsoft.PowerShell")
   --ua UA               user agent for the WinRM client (default: "Microsoft WinRM Client")
   --port PORT           remote host port (default 5985)
   --spn-prefix SPN_PREFIX
