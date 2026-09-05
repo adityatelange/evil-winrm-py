@@ -3,7 +3,7 @@
   <h1>evil-winrm-py</h1>
 
 [![PyPI version](https://img.shields.io/pypi/v/evil-winrm-py)](https://pypi.org/project/evil-winrm-py/)
-![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![License](https://img.shields.io/github/license/adityatelange/evil-winrm-py)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/evil-winrm-py?period=monthly&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=BLUE&left_text=downloads%2Fmonth)](https://pepy.tech/projects/evil-winrm-py)
 [![Github Wiki](https://img.shields.io/badge/github-wiki%2Fdocs-blue)](https://github.com/adityatelange/evil-winrm-py/wiki)
@@ -31,12 +31,12 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Progress bar for file transfers with speed and time estimation.
 - Stable and reliable file transfer including support for large files with MD5 checksum verification.
 - Auto-complete local and remote file paths (even those with spaces) with `Tab` completion.
-- Auto-complete PowerShell cmdlets/helpers with `Tab` completion. 🆕
-- Load PowerShell functions from local scripts into the interactive shell. 🆕
-- Run local PowerShell scripts on the remote host. 🆕
-- Load local DLLs (in-memory) as PowerShell modules on the remote host. 🆕
-- Upload and execute local EXEs (in-memory) on the remote host. 🆕
-- List the running services (except system services) on the remote host. 🆕
+- Auto-complete PowerShell cmdlets/helpers with `Tab` completion.
+- Load PowerShell functions from local scripts into the interactive shell.
+- Run local PowerShell scripts on the remote host.
+- Load local DLLs (in-memory) as PowerShell modules on the remote host.
+- Upload and execute local EXEs (in-memory) on the remote host.
+- List the running services (except system services) on the remote host.
 - Optional MCP server mode to expose WinRM login/execute/logout as tools for MCP clients, with support for multiple concurrent sessions. 🆕
 - Enable logging and debugging for better traceability.
 - Navigate command history using `up`/`down` arrow keys.
@@ -53,7 +53,7 @@ Includes support for:
 - SSL to secure communication with the remote host.
 - custom WSMan URIs.
 - custom user agent for the WinRM client.
-- connecting to Just Enough Administration (JEA) session configurations.
+- connecting to Just Enough Administration (JEA) session configurations. 🆕
 
 Detailed documentation can be found in the [docs](https://github.com/adityatelange/evil-winrm-py/blob/main/docs) directory.
 
