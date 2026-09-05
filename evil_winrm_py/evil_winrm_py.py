@@ -20,7 +20,8 @@ import tempfile
 import textwrap
 import time
 import traceback
-from importlib import resources, util as importlib_util
+from importlib import resources
+from importlib import util as importlib_util
 from pathlib import Path
 
 from prompt_toolkit import PromptSession, prompt
@@ -456,8 +457,7 @@ def get_remote_command_suggestions(
         return sorted(names)
 
     prefix_literal = _ps_single_quote(command_prefix or "")
-    ps_script = textwrap.dedent(
-        f"""
+    ps_script = textwrap.dedent(f"""
         $prefix = {prefix_literal};
         if ([string]::IsNullOrEmpty($prefix)) {{
             $pattern = '*';
@@ -471,8 +471,7 @@ def get_remote_command_suggestions(
                 Select-Object -ExpandProperty Name;
         }}
         $cmds | Sort-Object -Unique
-        """
-    ).strip()
+        """).strip()
 
     output, _, had_errors = run_ps_cmd(r_pool, ps_script)
     if had_errors:
@@ -1444,7 +1443,11 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     )
                     continue
                 remote_path = command_parts[1].strip('"')
-                local_path = command_parts[2].strip('"').strip("'") if len(command_parts) >= 3 else "."
+                local_path = (
+                    command_parts[2].strip('"').strip("'")
+                    if len(command_parts) >= 3
+                    else "."
+                )
 
                 remote_file, streams, had_errors = run_ps_cmd(
                     r_pool, f"(Resolve-Path -Path '{remote_path}').Path"
@@ -1476,7 +1479,9 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     print(RED + "[-] Usage: upload <local_path> [remote_path]" + RESET)
                     continue
                 local_path = command_parts[1].strip('"').strip("'")
-                remote_path = command_parts[2].strip('"') if len(command_parts) >= 3 else "."
+                remote_path = (
+                    command_parts[2].strip('"') if len(command_parts) >= 3 else "."
+                )
 
                 if not Path(local_path).expanduser().exists():
                     print(
@@ -1651,15 +1656,11 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
 # --- Main Function ---
 def main():
-    print(
-        """          _ _            _                             
+    print("""          _ _            _                             
   _____ _(_| |_____ __ _(_)_ _  _ _ _ __ ___ _ __ _  _ 
  / -_\\ V | | |___\\ V  V | | ' \\| '_| '  |___| '_ | || |
  \\___|\\_/|_|_|    \\_/\\_/|_|_||_|_| |_|_|_|  | .__/\\_, |
-                                            |_|   |__/  v{}\n""".format(
-            __version__
-        )
-    )
+                                            |_|   |__/  v{}\n""".format(__version__))
     parser = argparse.ArgumentParser(
         epilog="For more information about this project, visit https://github.com/adityatelange/evil-winrm-py"
         "\nFor user guide, visit https://github.com/adityatelange/evil-winrm-py/blob/main/docs/usage.md",
@@ -1676,6 +1677,12 @@ def main():
     parser.add_argument("-p", "--password", help="password")
     parser.add_argument("-H", "--hash", help="nthash")
     parser.add_argument(
+        "-c",
+        "--configuration-name",
+        default="Microsoft.PowerShell",
+        help="session configuration (JEA endpoint) to connect to (default: Microsoft.PowerShell)",
+    )
+    parser.add_argument(
         "--priv-key-pem",
         help="local path to private key PEM file",
     )
@@ -1684,13 +1691,6 @@ def main():
         help="local path to certificate PEM file",
     )
     parser.add_argument("--uri", default="wsman", help="wsman URI (default: /wsman)")
-    parser.add_argument(
-        "-c",
-        "--configuration-name",
-        default="Microsoft.PowerShell",
-        help="session configuration (JEA endpoint) to connect to "
-        '(default: "Microsoft.PowerShell")',
-    )
     parser.add_argument(
         "--ua",
         default="Microsoft WinRM Client",
