@@ -127,6 +127,31 @@ If the target server is using a non-standard port for WinRM, you can specify the
 evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --port <PORT>
 ```
 
+### Connecting to a JEA Endpoint (Just Enough Administration)
+
+If the target server exposes a [JEA](https://learn.microsoft.com/en-us/powershell/scripting/learn/remoting/jea/overview) session configuration instead of (or in addition to) the default `Microsoft.PowerShell` endpoint, you can connect to it by name using the `--configuration-name` (or `-c`) option.
+
+```bash
+evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --configuration-name <JEA_ENDPOINT_NAME>
+```
+
+JEA endpoints commonly run in [`NoLanguage` mode](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_language_modes), which only allows direct cmdlet invocations and rejects any form of script text — this includes `Invoke-Expression`, scriptblocks (`{ }`), variables, and operators. When `--configuration-name` is set to anything other than `Microsoft.PowerShell`, evil-winrm-py automatically switches the interactive shell to dispatch typed commands as a parsed cmdlet pipeline (`Cmdlet -Param value | Cmdlet2 -Param2 value2`) instead of wrapping them in `Invoke-Expression`, so plain cmdlet usage keeps working against `NoLanguage` endpoints.
+
+Run `Get-Command` to see which cmdlets the endpoint actually exposes:
+
+```bash
+evil-winrm-py JEA PS> Get-NetIPAddress | Measure-Object
+```
+
+> [!IMPORTANT]
+>
+> - Only simple `Cmdlet -Param value` style pipelines are supported in this mode; scripting constructs (scriptblocks, variables, conditionals, etc.) cannot be expressed this way and will fail on `NoLanguage` endpoints. Note that some commands and parameters are further restricted by JEA proxy functions; for example, the built-in `Select-Object` proxy blocks `-Property`/`-ExpandProperty`/`-First` unless the endpoint's role capability re-exposes the full cmdlet.
+> - Only cmdlets, functions, and parameters allowed by the endpoint's role capabilities are available; run `Get-Command` to list them.
+> - Output is rendered client-side, since JEA endpoints rarely expose `Out-String`/`Format-*`. Objects with a meaningful string form (e.g. `Get-NetIPAddress`) print as-is; objects that would otherwise show only their .NET type name (e.g. the result of `Measure-Object`) are rendered as a `Name : Value` property list. This can look different from the default shell's table/list formatting.
+> - The menu commands that rely on scripting (`services`, `upload`, `download`, `loadps`, `runps`, `loaddll`, `runexe`) are disabled in JEA mode, since they send script text (scriptblocks, variables, multi-line and base64 helpers) that a `NoLanguage` endpoint rejects. Only `menu`, `clear`/`cls`, and `exit` remain, alongside direct cmdlet pipelines; the disabled ones are still listed in `menu` but marked `(Disabled)`.
+> - Command-name tab-completion works (it uses `Get-Command`, one of the default `RestrictedRemoteServer` commands, so it lists the cmdlets the endpoint actually exposes). Remote **path** tab-completion is unavailable, since it depends on `$pwd.Path` and `Get-ChildItem | select -ExpandProperty`, which `NoLanguage` mode blocks.
+> - The prompt shows a static `JEA PS>` instead of the current working directory. A JEA session has no reliable way to read the working directory: `$pwd.Path` is a property expression (blocked in `NoLanguage` mode) and pwd cmdlets such as `Get-Location` are not part of the default `RestrictedRemoteServer` command set.
+
 ## Logging and Debugging
 
 Logging will create a log file in the current directory named `evil-winrm-py.log`.
