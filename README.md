@@ -111,27 +111,25 @@ For above mentioned distributions, you can install `evil-winrm-py` directly from
 Details on how to use `evil-winrm-py` can be found in the [Usage Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/usage.md).
 
 ```bash
-usage: evil-winrm-py [-h] -i IP [-u USER] [-p PASSWORD] [-H HASH]
-                     [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI]
-                     [-c CONFIGURATION_NAME] [--ua UA] [--port PORT] [--spn-prefix SPN_PREFIX]
-                     [--spn-hostname SPN_HOSTNAME] [-k] [--no-pass] [--ssl] [--log]
-                     [--debug] [--no-colors] [--version] [--mcp] [--mcp-port MCP_PORT]
-                     [--mcp-host MCP_HOST]
+usage: evil-winrm-py [-h] [-i IP] [-u USER] [-p PASSWORD] [-H HASH] [-c CONFIGURATION_NAME]
+                     [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI] [--ua UA]
+                     [--port PORT] [--spn-prefix SPN_PREFIX] [--spn-hostname SPN_HOSTNAME] [-k]
+                     [--no-pass] [--ssl] [--log] [--debug] [--no-colors] [--version] [--mcp]
+                     [--mcp-port MCP_PORT] [--mcp-host MCP_HOST]
 
 options:
   -h, --help            show this help message and exit
-  -i, --ip IP           remote host IP or hostname
-  -u, --user USER       username
-  -p, --password PASSWORD
+  -i IP, --ip IP        remote host IP or hostname
+  -u USER, --user USER  username
+  -p PASSWORD, --password PASSWORD
                         password
-  -H, --hash HASH       nthash
+  -H HASH, --hash HASH  nthash
+  -c CONFIGURATION_NAME, --configuration-name CONFIGURATION_NAME
+                        session configuration (JEA endpoint) to connect to (default: Microsoft.PowerShell)
   --priv-key-pem PRIV_KEY_PEM
                         local path to private key PEM file
   --cert-pem CERT_PEM   local path to certificate PEM file
   --uri URI             wsman URI (default: /wsman)
-  -c, --configuration-name CONFIGURATION_NAME
-                        session configuration (JEA endpoint) to connect to
-                        (default: "Microsoft.PowerShell")
   --ua UA               user agent for the WinRM client (default: "Microsoft WinRM Client")
   --port PORT           remote host port (default 5985)
   --spn-prefix SPN_PREFIX
@@ -145,10 +143,7 @@ options:
   --debug               enable debug logging
   --no-colors           disable colors
   --version             show version
-  --mcp                 start in MCP server in streamable HTTP mode (experimental
-                        feature, requires the `mcp` extra, use with --mcp-port
-                        and --mcp-host to customize the server address and
-                        port if needed)
+  --mcp                 start in MCP server in streamable HTTP mode (experimental feature, use with --mcp-port and --mcp-host to customize the server address and port if needed)
   --mcp-port MCP_PORT   port for MCP streamable HTTP mode (default 8000)
   --mcp-host MCP_HOST   host for MCP streamable HTTP mode (default 127.0.0.1)
 
