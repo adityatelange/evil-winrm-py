@@ -140,3 +140,82 @@ openssl pkcs12 \
 User `local-user` can now auth using private key `priv_key.pem` and public key `cert.pem`.
 
 Reference: https://docs.ansible.com/ansible/latest/os_guide/windows_winrm_certificate.html
+
+## Setup a JEA (Just Enough Administration) endpoint
+
+This creates a minimal JEA endpoint (`RestrictedRemoteServer` session type, which runs in `NoLanguage` mode) that only allows a local group to run `Get-Process` and `Get-Service`.
+
+**Create a local group and add a test user to it**
+
+```powershell
+New-LocalGroup -Name 'JEA_Testers'
+New-LocalUser -Name 'jeauser' -Password (ConvertTo-SecureString 'P@ssw0rd123!' -AsPlainText -Force)
+Add-LocalGroupMember -Group 'JEA_Testers' -Member 'jeauser'
+```
+
+**Create a role capability file**
+
+The `.psrc` file must live in a `RoleCapabilities` folder inside a PowerShell module folder on `$Env:PSModulePath`. At least one file in the module folder must have the same name as the folder itself.
+
+```powershell
+$modulePath = Join-Path $Env:ProgramFiles "WindowsPowerShell\Modules\ContosoJEA"
+New-Item -ItemType Directory -Path $modulePath -Force
+
+$rootModulePath = Join-Path $modulePath "ContosoJEA.psm1"
+$moduleManifestPath = Join-Path $modulePath "ContosoJEA.psd1"
+New-Item -ItemType File -Path $rootModulePath
+New-ModuleManifest -Path $moduleManifestPath -RootModule "ContosoJEA.psm1"
+
+$rcFolder = Join-Path $modulePath "RoleCapabilities"
+New-Item -ItemType Directory -Path $rcFolder -Force
+
+New-PSRoleCapabilityFile -Path (Join-Path $rcFolder "JEATester.psrc") `
+    -VisibleCmdlets 'Get-Process', 'Get-Service'
+```
+
+**Create and test the session configuration file**
+
+```powershell
+$roles = @{
+    "$Env:COMPUTERNAME\JEA_Testers" = @{ RoleCapabilities = 'JEATester' }
+}
+
+$parameters = @{
+    SessionType          = 'RestrictedRemoteServer' # NoLanguage mode
+    Path                 = (Join-Path $modulePath "JEATestEndpoint.pssc")
+    RunAsVirtualAccount  = $true
+    TranscriptDirectory  = 'C:\ProgramData\JEAConfiguration\Transcripts'
+    RoleDefinitions      = $roles
+}
+New-PSSessionConfigurationFile @parameters
+Test-PSSessionConfigurationFile -Path (Join-Path $modulePath "JEATestEndpoint.pssc") # should return True
+```
+
+**Register the endpoint**
+
+Registering restarts the WinRM service, which drops any active PowerShell remoting sessions.
+
+```powershell
+Register-PSSessionConfiguration -Path (Join-Path $modulePath "JEATestEndpoint.pssc") -Name 'JEATestEndpoint' -Force
+Get-PSSessionConfiguration | Select-Object Name
+```
+
+**Connect with evil-winrm-py**
+
+```bash
+evil-winrm-py -i <IP> -u jeauser -p 'P@ssw0rd123!' --configuration-name JEATestEndpoint
+```
+
+Because this is a `RestrictedRemoteServer` (`NoLanguage`) endpoint that only exposes `Get-Process`/`Get-Service`, the shell runs in JEA mode: type cmdlet pipelines directly (e.g. `Get-Service | Measure-Object`), use `Get-Command` to list allowed cmdlets, and note that the scripting-based menu commands (`upload`, `download`, etc.) are disabled. See the [JEA section of the usage guide](usage.md#connecting-to-a-jea-endpoint-just-enough-administration) for details. To exercise more of the shell, add cmdlets to `-VisibleCmdlets` in the role capability file above.
+
+**Unregister the endpoint (cleanup)**
+
+```powershell
+Unregister-PSSessionConfiguration -Name 'JEATestEndpoint' -Force
+```
+
+Reference:
+
+- https://learn.microsoft.com/en-us/powershell/scripting/security/remoting/jea/role-capabilities
+- https://learn.microsoft.com/en-us/powershell/scripting/security/remoting/jea/session-configurations
+- https://learn.microsoft.com/en-us/powershell/scripting/security/remoting/jea/register-jea
