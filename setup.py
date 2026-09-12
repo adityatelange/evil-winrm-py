@@ -27,15 +27,15 @@ setup(
     ],
     install_requires=[
         "pypsrp==0.8.1",
-        "prompt_toolkit==3.0.52",
-        "tqdm==4.67.3",
+        "prompt_toolkit==3.0.53",
+        "tqdm==4.70.1",
     ],
     extras_require={
         "kerberos": [
             "pypsrp[kerberos]==0.8.1",
         ],
         "mcp": [
-            "mcp==2.0.0",
+            "mcp==2.2.0",
         ],
     },
     python_requires=">=3.10",
