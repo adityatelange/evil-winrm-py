@@ -14,6 +14,7 @@ from pypsrp.powershell import PowerShell, RunspacePool
 from requests.exceptions import ConnectionError
 from spnego.exceptions import NoCredentialError, OperationNotAvailableError, SpnegoError
 
+from evil_winrm_py.evil_winrm_py import build_cmdlet_pipeline, format_ps_object
 from evil_winrm_py.pypsrp_ewp.wsman import SUPPORTED_AUTHS, WSManEWP
 
 # --- MCPServer instance ---
@@ -37,6 +38,7 @@ class _WinRMSession:
     def __init__(self):
         self.wsman = None
         self.r_pool = None
+        self.jea_mode = False
 
     def login(
         self,
@@ -53,6 +55,7 @@ class _WinRMSession:
         spn_hostname: Optional[str] = None,
         priv_key_pem: Optional[str] = None,
         cert_pem: Optional[str] = None,
+        configuration_name: str = "Microsoft.PowerShell",
     ) -> bool:
         if self.r_pool is not None:
             self.logout()
@@ -78,8 +81,11 @@ class _WinRMSession:
                 user_agent=ua,
             )
             self.wsman.__enter__()  # WSManEWP does not support context manager, but we call __enter__ to establish the connection and authenticate
-            self.r_pool = RunspacePool(self.wsman)
+            self.r_pool = RunspacePool(
+                self.wsman, configuration_name=configuration_name
+            )
             self.r_pool.__enter__()  # RunspacePool does not support context manager, but we call __enter__ to create the runspace
+            self.jea_mode = configuration_name != "Microsoft.PowerShell"
             return True
         except (
             TypeError,
@@ -102,14 +108,24 @@ class _WinRMSession:
         if self.r_pool is None:
             raise RuntimeError("Not logged in. Call winrm_login first.")
         ps = PowerShell(self.r_pool)
-        ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
-        ps.add_cmdlet("Out-String").add_parameter("Stream")
+        if self.jea_mode:
+            # JEA (NoLanguage) endpoints reject the script text that
+            # Invoke-Expression relies on, so build a structured cmdlet
+            # pipeline and format the returned objects client-side.
+            if not build_cmdlet_pipeline(ps, command):
+                return ""
+        else:
+            ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+            ps.add_cmdlet("Out-String").add_parameter("Stream")
         try:
             ps.invoke()
         except (WinRMTransportError, WSManFaultError, ConnectionError) as exc:
             self._cleanup()
             raise RuntimeError(str(exc)) from exc
-        stdout = "\n".join(ps.output)
+        if self.jea_mode:
+            stdout = "\n".join(format_ps_object(line) for line in ps.output)
+        else:
+            stdout = "\n".join(ps.output)
         if ps.had_errors and ps.streams.error:
             stderr = "\n".join(e._to_string for e in ps.streams.error)
             raise RuntimeError(f"{stdout}\nSTDERR:\n{stderr}".strip())
@@ -120,6 +136,7 @@ class _WinRMSession:
         return "WinRM session closed."
 
     def _cleanup(self) -> None:
+        self.jea_mode = False
         if self.r_pool is not None:
             try:
                 self.r_pool.__exit__(None, None, None)
@@ -208,6 +225,7 @@ def winrm_login(
     spn_hostname: Optional[str] = None,
     priv_key_pem: Optional[str] = None,
     cert_pem: Optional[str] = None,
+    configuration_name: str = "Microsoft.PowerShell",
 ) -> str:
     """Authenticate to a remote Windows host over WinRM.
 
@@ -229,11 +247,17 @@ def winrm_login(
         spn_hostname=spn_hostname,
         priv_key_pem=priv_key_pem,
         cert_pem=cert_pem,
+        configuration_name=configuration_name,
     )
     session_id = _next_session_id
     _next_session_id += 1
     _sessions[session_id] = session
-    return f"Connected to {ip}:{port} as {username}. session_id={session_id}"
+    jea_note = (
+        f" (JEA endpoint '{configuration_name}', NoLanguage mode)"
+        if session.jea_mode
+        else ""
+    )
+    return f"Connected to {ip}:{port} as {username}{jea_note}. session_id={session_id}"
 
 
 @mcp.tool(annotations={"openWorldHint": True, "readOnlyHint": True})
@@ -243,8 +267,9 @@ def list_sessions() -> str:
     for sid, session in _sessions.items():
         if session.r_pool is not None:
             t = session.wsman.transport
+            jea_note = " [JEA]" if session.jea_mode else ""
             lines.append(
-                f"Session {sid}: connected to {t.server}:{t.port} as {t.username}"
+                f"Session {sid}: connected to {t.server}:{t.port} as {t.username}{jea_note}"
             )
     if not lines:
         return "No active sessions."
