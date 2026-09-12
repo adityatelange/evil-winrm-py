@@ -341,7 +341,7 @@ def get_prompt(r_pool: RunspacePool) -> str:
         # A JEA session offers no reliable way to read the working directory:
         # $pwd.Path is a property expression (blocked in NoLanguage mode)
         # use a static prompt.
-        return f"{RED}evil-winrm-py{RESET} {MAGENTA}{BOLD}JEA{RESET} PS> "
+        return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET} (JEA)> "
     output, streams, had_errors = run_ps_cmd(
         r_pool, "$pwd.Path"
     )  # Get current working directory
