@@ -1900,9 +1900,8 @@ def main():
                 + RESET
             )
             print(
-                MAGENTA + "[%] JEA mode: commands run as direct cmdlet pipelines "
-                "(Cmdlet -Param value | Cmdlet2). Run 'Get-Command' to see "
-                "which cmdlets this endpoint allows." + RESET
+                MAGENTA + "[%] JEA mode: Commands run as cmdlet pipelines. "
+                "Run 'Get-Command' to see allowed cmdlets." + RESET
             )
 
         with WSManEWP(
