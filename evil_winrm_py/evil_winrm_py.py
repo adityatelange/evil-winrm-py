@@ -1725,7 +1725,7 @@ def main():
         parser.add_argument(
             "--mcp",
             action="store_true",
-            help="start in MCP server in streamable HTTP mode (experimental feature, use with --mcp-port and --mcp-host to customize the server address and port if needed)",
+            help="start MCP server in streamable HTTP mode",
         )
         parser.add_argument(
             "--mcp-port",
@@ -1873,9 +1873,7 @@ def main():
 
         is_jea = args.configuration_name != "Microsoft.PowerShell"
         config_suffix = (
-            " using config '{}'".format(args.configuration_name)
-            if is_jea
-            else ""
+            " using config '{}'".format(args.configuration_name) if is_jea else ""
         )
 
         if username:
@@ -1889,9 +1887,7 @@ def main():
             )
         else:
             log.info(
-                "[*] Connecting to '{}:{}'{}".format(
-                    args.ip, args.port, config_suffix
-                )
+                "[*] Connecting to '{}:{}'{}".format(args.ip, args.port, config_suffix)
             )
             print(
                 BLUE
