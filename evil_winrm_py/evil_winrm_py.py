@@ -1871,34 +1871,39 @@ def main():
             if not args.password:
                 args.password = None
 
+        is_jea = args.configuration_name != "Microsoft.PowerShell"
+        config_suffix = (
+            " using config '{}'".format(args.configuration_name)
+            if is_jea
+            else ""
+        )
+
         if username:
             log.info(
-                "[*] Connecting to '{}:{}' as '{}'"
-                "".format(args.ip, args.port, username, auth)
+                "[*] Connecting to '{}:{}' as '{}'{}"
+                "".format(args.ip, args.port, username, config_suffix)
             )
             print(
-                BLUE + "[*] Connecting to '{}:{}' as '{}'"
-                "".format(args.ip, args.port, username) + RESET
+                BLUE + "[*] Connecting to '{}:{}' as '{}'{}"
+                "".format(args.ip, args.port, username, config_suffix) + RESET
             )
         else:
-            log.info("[*] Connecting to '{}:{}'".format(args.ip, args.port))
-            print(BLUE + "[*] Connecting to '{}:{}'".format(args.ip, args.port) + RESET)
-
-        if args.configuration_name != "Microsoft.PowerShell":
-            global JEA_MODE
-            JEA_MODE = True
             log.info(
-                "[*] Using session configuration (JEA endpoint): '{}'".format(
-                    args.configuration_name
+                "[*] Connecting to '{}:{}'{}".format(
+                    args.ip, args.port, config_suffix
                 )
             )
             print(
                 BLUE
-                + "[*] Using session configuration (JEA endpoint): '{}'".format(
-                    args.configuration_name
+                + "[*] Connecting to '{}:{}'{}".format(
+                    args.ip, args.port, config_suffix
                 )
                 + RESET
             )
+
+        if is_jea:
+            global JEA_MODE
+            JEA_MODE = True
             print(
                 MAGENTA + "[%] JEA mode: Commands run as cmdlet pipelines. "
                 "Run 'Get-Command' to see allowed cmdlets." + RESET
