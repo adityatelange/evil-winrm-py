@@ -1757,7 +1757,7 @@ def main():
     username = args.user
 
     # --- Run checks on provided arguments ---
-    if args.no_colors:
+    if args.no_colors or os.environ.get("NO_COLOR"):
         global RESET, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GREY, BOLD
         RESET = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = GREY = BOLD = ""
 
