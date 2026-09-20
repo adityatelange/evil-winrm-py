@@ -10,7 +10,7 @@
 
 </div>
 
-`evil-winrm-py` is a python-based tool for executing commands on remote Windows machines using the WinRM (Windows Remote Management) protocol. It provides an interactive shell with enhanced features like file upload/download, command history, and colorized output. It supports various authentication methods including NTLM, Pass-the-Hash, Certificate, and Kerberos.
+`evil-winrm-py` is a python-based tool for executing commands on remote Windows machines using the WinRM (Windows Remote Management) protocol. It provides an interactive shell with enhanced features like file upload/download with progress and checksum verification, tab-completion of local/remote paths and PowerShell cmdlets, loading and running PowerShell scripts, in-memory execution of DLLs and EXEs, command history, and colorized output. It can also run as an MCP server, exposing WinRM sessions as tools for MCP-compatible clients. It supports various authentication methods including NTLM, Pass-the-Hash, Certificate, and Kerberos. [skip to installation](#installation)
 
 ![](https://raw.githubusercontent.com/adityatelange/evil-winrm-py/refs/tags/v1.7.0/assets/terminal.png)
 
@@ -57,7 +57,7 @@ Includes support for:
 
 Detailed documentation can be found in the [docs](https://github.com/adityatelange/evil-winrm-py/blob/main/docs) directory.
 
-## Installation (Windows/Linux)
+## Installation
 
 #### Installation of Kerberos prerequisites on Linux
 
@@ -68,22 +68,28 @@ sudo apt install gcc python3-dev libkrb5-dev krb5-pkinit
 
 ### Install `evil-winrm-py`
 
-> You may use [pipx](https://pipx.pypa.io/stable/) or [uv](https://docs.astral.sh/uv/) instead of pip to install evil-winrm-py. `pipx`/`uv` is a tool to install and run Python applications in isolated environments, which helps prevent dependency conflicts by keeping the tool's dependencies separate from your system's Python packages.
+> You may use [uv](https://docs.astral.sh/uv/)/[pipx](https://pipx.pypa.io/stable/) instead of pip to install evil-winrm-py. `uv`/`pipx` is a tool to install and run Python applications in isolated environments, which helps prevent dependency conflicts by keeping the tool's dependencies separate from your system's Python packages.
+
+Check [Installation Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/install.md) for more details.
+
 
 ```bash
 pip install evil-winrm-py
+# for optional dependencies use any one of the following commands:
 pip install evil-winrm-py[kerberos] # for kerberos support on Linux
+pip install evil-winrm-py[mcp] # for mcp support
+pip install evil-winrm-py[kerberos,mcp] # to install both optional dependencies
 
 # Note: building gssapi and krb5 packages may take some time, so be patient.
 ```
 
-or if you want to install with latest commit from the main branch you can do so by cloning the repository and installing it with `pip`/`pipx`/`uv`:
+or if you want to install with latest commit from the main branch you can do so by cloning the repository and installing it with `pip`/`uv`/`pipx`:
 
 ```bash
 git clone https://github.com/adityatelange/evil-winrm-py
 cd evil-winrm-py
 pip install .
-pip install .[mcp] # for optional MCP server support (requires Python 3.10+), not yet released on PyPI
+# or use: pip install .[kerberos,mcp] to install both optional dependencies
 ```
 
 ### Update
@@ -97,8 +103,6 @@ pip install --upgrade evil-winrm-py
 ```bash
 pip uninstall evil-winrm-py
 ```
-
-Check [Installation Guide](https://github.com/adityatelange/evil-winrm-py/blob/main/docs/install.md) for more details.
 
 ## Availability on Unix distributions
 
@@ -143,7 +147,7 @@ options:
   --debug               enable debug logging
   --no-colors           disable colors
   --version             show version
-  --mcp                 start in MCP server in streamable HTTP mode (experimental feature, use with --mcp-port and --mcp-host to customize the server address and port if needed)
+  --mcp                 start MCP server in streamable HTTP mode
   --mcp-port MCP_PORT   port for MCP streamable HTTP mode (default 8000)
   --mcp-host MCP_HOST   host for MCP streamable HTTP mode (default 127.0.0.1)
 
@@ -156,19 +160,6 @@ Example:
 ```bash
 evil-winrm-py -i 192.168.1.100 -u Administrator -p P@ssw0rd --ssl
 ```
-
-### MCP Server Mode
-
-With the `mcp` extra installed, you can run `evil-winrm-py` as an MCP server, exposing WinRM login/execute/logout as tools for MCP-compatible clients (e.g. Claude, other AI agents) over streamable HTTP. It supports multiple concurrent WinRM sessions via a `session_id`.
-
-```bash
-evil-winrm-py --mcp
-# or customize the address:
-evil-winrm-py --mcp --mcp-host 0.0.0.0 --mcp-port 8000
-```
-
-> [!NOTE]
-> This is an experimental feature. Since it allows remote command execution on Windows hosts via MCP tools, only expose it on trusted networks and to trusted MCP clients.
 
 ## Menu Commands (inside evil-winrm-py shell)
 
@@ -186,6 +177,19 @@ Menu:
 [+] exit                                                    - Exit the shell
 Note: Use absolute paths for upload/download for reliability.
 ```
+
+### MCP Server Mode
+
+With the `mcp` extra installed, you can run `evil-winrm-py` as an MCP server, exposing WinRM login/execute/logout as tools for MCP-compatible clients (e.g. Claude, other AI agents) over streamable HTTP. It supports multiple concurrent WinRM sessions via a `session_id`.
+
+```bash
+evil-winrm-py --mcp
+# or customize the address:
+evil-winrm-py --mcp --mcp-host 0.0.0.0 --mcp-port 8000
+```
+
+> [!WARNING]
+> Since MCP server mode allows remote command execution on Windows hosts via MCP tools, only expose it on trusted networks and to trusted MCP clients.
 
 ## Credits
 

@@ -135,7 +135,7 @@ If the target server exposes a [JEA](https://learn.microsoft.com/en-us/powershel
 evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --configuration-name <JEA_ENDPOINT_NAME>
 ```
 
-JEA endpoints commonly run in [`NoLanguage` mode](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_language_modes), which only allows direct cmdlet invocations and rejects any form of script text — this includes `Invoke-Expression`, scriptblocks (`{ }`), variables, and operators. When `--configuration-name` is set to anything other than `Microsoft.PowerShell`, evil-winrm-py automatically switches the interactive shell to dispatch typed commands as a parsed cmdlet pipeline (`Cmdlet -Param value | Cmdlet2 -Param2 value2`) instead of wrapping them in `Invoke-Expression`, so plain cmdlet usage keeps working against `NoLanguage` endpoints.
+JEA endpoints commonly run in [`NoLanguage` mode](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_language_modes), which only allows direct cmdlet invocations and rejects any form of script text: this includes `Invoke-Expression`, scriptblocks (`{ }`), variables, and operators. When `--configuration-name` is set to anything other than `Microsoft.PowerShell`, evil-winrm-py automatically switches the interactive shell to dispatch typed commands as a parsed cmdlet pipeline (`Cmdlet -Param value | Cmdlet2 -Param2 value2`) instead of wrapping them in `Invoke-Expression`, so plain cmdlet usage keeps working against `NoLanguage` endpoints.
 
 Run `Get-Command` to see which cmdlets the endpoint actually exposes:
 
@@ -312,8 +312,8 @@ list_sessions  - List all active WinRM sessions
 
 `winrm_login` accepts the same authentication options as the CLI (NTLM, Pass-the-Hash, Certificate, Kerberos-related SPN options, SSL, custom URI/user-agent, etc.). `session_id` is optional for `winrm_execute`/`winrm_logout` while only one session is active; once multiple sessions exist, pass it explicitly (use `list_sessions` to see active session IDs).
 
-> [!NOTE]
-> This is an experimental feature. Since it allows remote command execution on Windows hosts via MCP tools, only expose it on trusted networks and to trusted MCP clients.
+> [!WARNING]
+> Since MCP server mode allows remote command execution on Windows hosts via MCP tools, only expose it on trusted networks and to trusted MCP clients.
 
 ## Additional Options
 
