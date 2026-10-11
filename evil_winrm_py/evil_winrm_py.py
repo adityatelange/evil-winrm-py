@@ -1410,22 +1410,24 @@ def interactive_shell(r_pool: RunspacePool) -> None:
             if not command:
                 continue
 
-            # Normalize command input
-            command_lower = str(command).strip().lower()
+            # Match built-in commands against the first whitespace-delimited token
+            # only, so a remote command that merely starts with a built-in name
+            # (e.g. "downloadstring(...)") is not hijacked by the built-in handler.
+            command_name = str(command).strip().lower().split(maxsplit=1)[0]
 
             # Check for exit command
-            if command_lower == "exit":
+            if command_name == "exit":
                 log.info("Exiting interactive shell.")
                 return
-            elif command_lower in ["clear", "cls"]:
+            elif command_name in ["clear", "cls"]:
                 log.info("Clearing the screen.")
                 clear()  # Clear the screen
                 continue
-            elif command_lower == "menu":
+            elif command_name == "menu":
                 log.info("Displaying menu.")
                 show_menu()
                 continue
-            elif not JEA_MODE and command_lower == "services":
+            elif not JEA_MODE and command_name == "services":
                 log.info("Displaying services.")
                 get_services_command = (
                     "Get-ItemProperty 'Registry::HKLM\\System\\CurrentControlSet\\Services\\*' -ErrorAction "
@@ -1439,7 +1441,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 print(services)
                 continue
 
-            elif not JEA_MODE and command_lower.startswith("download"):
+            elif not JEA_MODE and command_name == "download":
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(
@@ -1477,7 +1479,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 download_file(r_pool, remote_file, str(local_path))
                 continue
-            elif not JEA_MODE and command_lower.startswith("upload"):
+            elif not JEA_MODE and command_name == "upload":
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: upload <local_path> [remote_path]" + RESET)
@@ -1510,7 +1512,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     r_pool, str(Path(local_path).expanduser().resolve()), remote_path
                 )
                 continue
-            elif not JEA_MODE and command_lower.startswith("loadps"):
+            elif not JEA_MODE and command_name == "loadps":
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: loadps <local_path>" + RESET)
@@ -1535,7 +1537,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 load_ps(r_pool, local_path)
                 continue
-            elif not JEA_MODE and command_lower.startswith("runps"):
+            elif not JEA_MODE and command_name == "runps":
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: runps <local_path>" + RESET)
@@ -1560,7 +1562,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
 
                 run_ps(r_pool, local_path)
                 continue
-            elif not JEA_MODE and command_lower.startswith("loaddll"):
+            elif not JEA_MODE and command_name == "loaddll":
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: loaddll <local_path>" + RESET)
@@ -1580,7 +1582,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                     continue
                 load_dll(r_pool, local_path)
                 continue
-            elif not JEA_MODE and command_lower.startswith("runexe"):
+            elif not JEA_MODE and command_name == "runexe":
                 command_parts = quoted_command_split(command)
                 if len(command_parts) < 2:
                     print(RED + "[-] Usage: runexe <local_path> [args]" + RESET)
