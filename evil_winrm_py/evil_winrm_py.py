@@ -1000,39 +1000,47 @@ def download_file(r_pool: RunspacePool, remote_path: str, local_path: str) -> No
                 for error in ps.streams.error:
                     print(error)
 
+        # Verify the downloaded file's hash
+        hexdigest = hashlib.md5(open(tmp_file_path, "rb").read()).hexdigest()
+        if metadata["FileHash"].lower() == hexdigest:
+            # If the hash matches, rename the temporary file to the final name
+            tmp_file_path = Path(tmp_file_path)
+            try:
+                shutil.move(tmp_file_path, local_path)
+            except Exception as e:
+                print(RED + f"[-] Error saving file: {e}" + RESET)
+                log.error(f"Error saving file: {e}")
+                return
+            print(
+                GREEN
+                + "[+] File downloaded successfully and saved as: "
+                + local_path
+                + RESET
+            )
+            log.info("File downloaded successfully and saved as: {}".format(local_path))
+        else:
+            print(
+                RED
+                + "[-] File hash mismatch. Downloaded file may be corrupted."
+                + RESET
+            )
+            log.error("File hash mismatch. Downloaded file may be corrupted.")
+
     except KeyboardInterrupt:
         if "pbar" in locals() and pbar:
             pbar.leave = (
                 False  # Make the progress bar disappear on close after interrupt
             )
             pbar.close()
-        Path(tmp_file_path).unlink(missing_ok=True)
         if ps.state == PSInvocationState.RUNNING:
             log.info("Stopping command execution.")
             ps.stop()
-        return
-
-    # Verify the downloaded file's hash
-    hexdigest = hashlib.md5(open(tmp_file_path, "rb").read()).hexdigest()
-    if metadata["FileHash"].lower() == hexdigest:
-        # If the hash matches, rename the temporary file to the final name
-        tmp_file_path = Path(tmp_file_path)
-        try:
-            shutil.move(tmp_file_path, local_path)
-        except Exception as e:
-            print(RED + f"[-] Error saving file: {e}" + RESET)
-            log.error(f"Error saving file: {e}")
-            return
-        print(
-            GREEN
-            + "[+] File downloaded successfully and saved as: "
-            + local_path
-            + RESET
-        )
-        log.info("File downloaded successfully and saved as: {}".format(local_path))
-    else:
-        print(RED + "[-] File hash mismatch. Downloaded file may be corrupted." + RESET)
-        log.error("File hash mismatch. Downloaded file may be corrupted.")
+    finally:
+        # Remove the temporary file on any exit path except a successful move,
+        # where it has already been renamed to the destination (so unlink is a
+        # no-op). This covers remote errors, hash mismatch, save failures and
+        # interrupts, none of which should leave an orphaned temp file behind.
+        Path(tmp_file_path).unlink(missing_ok=True)
 
 
 def upload_file(r_pool: RunspacePool, local_path: str, remote_path: str) -> None:
