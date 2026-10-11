@@ -379,8 +379,12 @@ def get_directory_and_partial_name(text: str, sep: str) -> tuple[str, str]:
     """
     if sep not in ["\\", "/"]:
         raise ValueError("Separator must be either '\\' or '/'")
-    # Find the last unquoted slash or backslash
-    last_sep_index = text.rfind(sep)
+    # Find the last separator. Remote (Windows) paths may be typed with either
+    # a backslash or a forward slash, so for backslash-based paths honour both.
+    if sep == "\\":
+        last_sep_index = max(text.rfind("\\"), text.rfind("/"))
+    else:
+        last_sep_index = text.rfind(sep)
     if last_sep_index == -1:
         # No separator found, the whole text is the partial name in the current directory
         directory_prefix = ""
@@ -877,7 +881,7 @@ class CommandPathCompleter(Completer):
             if (
                 not re.match(r"^[a-zA-Z]:", directory_prefix)
                 and directory_prefix
-                and directory_prefix.endswith("\\")
+                and directory_prefix.endswith(("\\", "/"))
             ):
                 sugg_path = f"{directory_prefix}{sugg_path}"
 
