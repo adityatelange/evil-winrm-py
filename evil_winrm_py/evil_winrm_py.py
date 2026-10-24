@@ -614,6 +614,7 @@ class CommandPathCompleter(Completer):
         args = quoted_command_split(path_typed_segment.strip())
 
         suggestions = []
+        is_remote = False  # Remote suggestions are bare names; local are full paths
         current_arg_text_being_completed = ""
         directory_prefix = partial_name = ""
 
@@ -641,6 +642,7 @@ class CommandPathCompleter(Completer):
                     suggestions = get_remote_path_suggestions(
                         self.r_pool, directory_prefix, partial_name
                     )
+                    is_remote = True
                 else:
                     # Still completing the 1st argument (local_path), e.g., "upload arg1"
                     current_arg_text_being_completed = path_being_completed = args[0]
@@ -673,6 +675,7 @@ class CommandPathCompleter(Completer):
                     suggestions = get_remote_path_suggestions(
                         self.r_pool, directory_prefix, partial_name
                     )
+                    is_remote = True
             else:
                 # More than 2 arguments, e.g., "upload local_path remote_path extra_arg"
                 pass
@@ -690,6 +693,7 @@ class CommandPathCompleter(Completer):
                 suggestions = get_remote_path_suggestions(
                     self.r_pool, directory_prefix, partial_name
                 )
+                is_remote = True
             elif num_args_present == 1:
                 # We have "download arg1" or "download local_path "
                 if path_typed_segment.endswith(" "):
@@ -714,6 +718,7 @@ class CommandPathCompleter(Completer):
                     suggestions = get_remote_path_suggestions(
                         self.r_pool, directory_prefix, partial_name
                     )
+                    is_remote = True
             elif num_args_present == 2:
                 # We have two argument parts
                 # e.g., "download remote_path arg2" or "download remote_path local_path "
@@ -874,12 +879,15 @@ class CommandPathCompleter(Completer):
             suggestions = get_remote_path_suggestions(
                 self.r_pool, directory_prefix, partial_name, dirs_only
             )
+            is_remote = True
 
         for sugg_path in suggestions:
 
-            # If the path doesn't start with a drive letter, prepend the directory_prefix
+            # Remote paths without a drive letter come back as bare names, so
+            # prepend the directory_prefix (local suggestions are already full paths)
             if (
-                not re.match(r"^[a-zA-Z]:", directory_prefix)
+                is_remote
+                and not re.match(r"^[a-zA-Z]:", directory_prefix)
                 and directory_prefix
                 and directory_prefix.endswith(("\\", "/"))
             ):
