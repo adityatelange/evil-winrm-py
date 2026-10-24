@@ -1423,7 +1423,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 key_bindings=kb,
             )
 
-            if not command:
+            if not command or not command.strip():
                 continue
 
             # Match built-in commands against the first whitespace-delimited token
