@@ -5,6 +5,7 @@
 # --- Define Parameters ---
 param (
     [Parameter(Mandatory=$true, Position=0)]
+    [AllowEmptyString()]    # An empty chunk is valid (e.g. a 0-byte file)
     [string]$Base64Chunk,   # The Base64 encoded chunk of bytes
     [Parameter(Mandatory=$true, Position=1)]
     [int]$ChunkType = 0,    # 0 for new file, 1 for appending to existing file
