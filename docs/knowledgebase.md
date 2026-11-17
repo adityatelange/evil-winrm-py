@@ -145,6 +145,26 @@ Reference: https://docs.ansible.com/ansible/latest/os_guide/windows_winrm_certif
 
 This creates a minimal JEA endpoint (`RestrictedRemoteServer` session type, which runs in `NoLanguage` mode) that only allows a local group to run `Get-Process` and `Get-Service`.
 
+**PowerShell language modes**
+
+A session's language mode decides how much of the PowerShell language it accepts. The cmdlets you can run are controlled separately, by the role capability.
+
+| Language mode         | What is allowed                                                                                                                                                                     | Where you see it                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `FullLanguage`        | Everything: variables, scriptblocks, operators, .NET types and methods, `Add-Type`.                                                                                                 | Default sessions (`Microsoft.PowerShell`), and the `Default` session type.                         |
+| `ConstrainedLanguage` | Cmdlets, variables, scriptblocks and operators. Blocks `Add-Type`, COM objects, and .NET types or methods outside a small allowed list.                                               | AppLocker or WDAC-enforced hosts, and JEA endpoints that set `LanguageMode = 'ConstrainedLanguage'`. |
+| `RestrictedLanguage`  | Cmdlets and basic operators only. No scriptblocks, no assignments, and only a few automatic variables (`$True`, `$False`, `$Null`, `$PSCulture`, `$PSUICulture`).                    | Module `data` sections. Rare on remoting endpoints.                                                 |
+| `NoLanguage`          | No script text at all. Only commands sent through the PowerShell API, so no variables, operators, scriptblocks or `Invoke-Expression`.                                              | Default for the `RestrictedRemoteServer` session type, i.e. most JEA endpoints.                     |
+
+When connected to a JEA endpoint, evil-winrm-py checks the language mode by running `$ExecutionContext.SessionState.LanguageMode` once.
+
+- **`ConstrainedLanguage` or `FullLanguage`:** typed input is sent as PowerShell script, so variables and other language features work.
+- **`NoLanguage` or `RestrictedLanguage`:** the check is rejected, and input is sent as parsed cmdlet pipelines instead.
+
+The banner shows which mode was detected, e.g. `[%] JEA mode (ConstrainedLanguage)`.
+
+To see an endpoint's mode on the server, look for `LanguageMode` in its `.pssc` file. If it isn't set, `RestrictedRemoteServer` means `NoLanguage` and `Default` means `FullLanguage`.
+
 **Create a local group and add a test user to it**
 
 ```powershell
@@ -208,10 +228,45 @@ evil-winrm-py -i <IP> -u jeauser -p 'P@ssw0rd123!' --configuration-name JEATestE
 
 Because this is a `RestrictedRemoteServer` (`NoLanguage`) endpoint that only exposes `Get-Process`/`Get-Service`, the shell runs in JEA mode: type cmdlet pipelines directly (e.g. `Get-Service | Measure-Object`), use `Get-Command` to list allowed cmdlets, and note that the scripting-based menu commands (`upload`, `download`, etc.) are disabled. See the [JEA section of the usage guide](usage.md#connecting-to-a-jea-endpoint-just-enough-administration) for details. To exercise more of the shell, add cmdlets to `-VisibleCmdlets` in the role capability file above.
 
+**Optional: add a `ConstrainedLanguage` endpoint**
+
+To test both input modes from one machine, register a second endpoint. It uses the same role capability and group, but sets the language mode explicitly. Run this in the same session as the steps above, since it reuses `$modulePath` and `$roles`.
+
+```powershell
+$parameters = @{
+    SessionType          = 'RestrictedRemoteServer'
+    LanguageMode         = 'ConstrainedLanguage' # overrides the NoLanguage default
+    Path                 = (Join-Path $modulePath "JEATestEndpointCLM.pssc")
+    RunAsVirtualAccount  = $true
+    TranscriptDirectory  = 'C:\ProgramData\JEAConfiguration\Transcripts'
+    RoleDefinitions      = $roles
+}
+New-PSSessionConfigurationFile @parameters
+Test-PSSessionConfigurationFile -Path (Join-Path $modulePath "JEATestEndpointCLM.pssc") # should return True
+
+Register-PSSessionConfiguration -Path (Join-Path $modulePath "JEATestEndpointCLM.pssc") -Name 'JEATestEndpointCLM' -Force
+```
+
+```bash
+evil-winrm-py -i <IP> -u jeauser -p 'P@ssw0rd123!' --configuration-name JEATestEndpointCLM
+```
+
+The banner should read `JEA mode (ConstrainedLanguage)`. Language constructs that fail on the `NoLanguage` endpoint now work:
+
+| Input                           | `JEATestEndpoint` (`NoLanguage`) | `JEATestEndpointCLM` (`ConstrainedLanguage`) |
+| ------------------------------- | -------------------------------- | -------------------------------------------- |
+| `Get-Service \| Measure-Object` | works                            | works                                        |
+| `$s = Get-Service; $s.Count`    | fails                            | prints a count                               |
+| `(Get-Process).Count`           | fails                            | prints a count                               |
+| `[int]'41' + 1`                 | fails                            | `42`                                         |
+
+`RestrictedRemoteServer` still exposes only a fixed set of cmdlets plus the role's cmdlets, in any language mode. So `Where-Object` and `ForEach-Object` are unavailable on both endpoints unless you add them to `-VisibleCmdlets`.
+
 **Unregister the endpoint (cleanup)**
 
 ```powershell
 Unregister-PSSessionConfiguration -Name 'JEATestEndpoint' -Force
+Unregister-PSSessionConfiguration -Name 'JEATestEndpointCLM' -Force # if you added it
 ```
 
 Reference:
