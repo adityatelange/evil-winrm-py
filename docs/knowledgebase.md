@@ -159,9 +159,9 @@ A session's language mode decides how much of the PowerShell language it accepts
 When connected to a JEA endpoint, evil-winrm-py checks the language mode by running `$ExecutionContext.SessionState.LanguageMode` once.
 
 - **`ConstrainedLanguage` or `FullLanguage`:** typed input is sent as PowerShell script, so variables and other language features work.
-- **`NoLanguage` or `RestrictedLanguage`:** the check is rejected, and input is sent as parsed cmdlet pipelines instead.
+- **`NoLanguage`, `RestrictedLanguage`, or the check fails:** input is sent as parsed cmdlet pipelines instead, which work in every mode. Both modes reject the check, so they can't be told apart.
 
-The banner shows which mode was detected, e.g. `[%] JEA mode (ConstrainedLanguage)`.
+The banner shows the result, e.g. `[%] JEA mode (ConstrainedLanguage)` or `[%] JEA mode (NoLanguage/RestrictedLanguage)`.
 
 To see an endpoint's mode on the server, look for `LanguageMode` in its `.pssc` file. If it isn't set, `RestrictedRemoteServer` means `NoLanguage` and `Default` means `FullLanguage`.
 

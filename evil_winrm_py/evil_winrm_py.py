@@ -291,15 +291,18 @@ def build_cmdlet_pipeline(ps: PowerShell, command: str) -> bool:
 def detect_jea_language_mode(r_pool: RunspacePool) -> str | None:
     """
     Probes the endpoint's PowerShell language mode by submitting a tiny script.
-    NoLanguage endpoints reject any script text, so a failure here means
-    NoLanguage (or something we can't use script against). Returns the mode
-    name (e.g. "ConstrainedLanguage", "FullLanguage") or None on failure.
+    NoLanguage endpoints reject any script text and RestrictedLanguage ones
+    reject the $ExecutionContext reference, so a failure here means script
+    input can't be used. Returns the mode name (e.g. "ConstrainedLanguage",
+    "FullLanguage") or None on failure.
     """
     try:
         ps = PowerShell(r_pool)
         ps.add_script("$ExecutionContext.SessionState.LanguageMode")
         ps.invoke()
         if ps.had_errors or not ps.output:
+            for error in ps.streams.error:
+                log.debug("JEA language mode probe rejected: {}".format(error))
             return None
         return str(ps.output[0]).strip() or None
     except Exception as e:
@@ -314,17 +317,21 @@ def configure_jea_input_mode(r_pool: RunspacePool) -> None:
     """
     global JEA_SCRIPT_MODE
     mode = detect_jea_language_mode(r_pool)
-    JEA_SCRIPT_MODE = mode is not None and mode != "NoLanguage"
-    log.info("JEA language mode: {}".format(mode or "NoLanguage (probe rejected)"))
+    # Allowlist: only modes known to accept script text switch to add_script.
+    # Anything else (NoLanguage, RestrictedLanguage, unknown, probe failure)
+    # keeps the cmdlet-pipeline path, which works on every mode.
+    JEA_SCRIPT_MODE = mode in ("FullLanguage", "ConstrainedLanguage")
+    log.info("JEA language mode: {}".format(mode or "unknown (probe rejected)"))
     if JEA_SCRIPT_MODE:
         print(
             MAGENTA + "[%] JEA mode ({}): Input submitted as PowerShell script. "
             "Run 'Get-Command' to see allowed cmdlets.".format(mode) + RESET
         )
     else:
+        label = mode or "NoLanguage/RestrictedLanguage"
         print(
-            MAGENTA + "[%] JEA mode (NoLanguage): Commands run as cmdlet pipelines. "
-            "Run 'Get-Command' to see allowed cmdlets." + RESET
+            MAGENTA + "[%] JEA mode ({}): Commands run as cmdlet pipelines. "
+            "Run 'Get-Command' to see allowed cmdlets.".format(label) + RESET
         )
 
 
