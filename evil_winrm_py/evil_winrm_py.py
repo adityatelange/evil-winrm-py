@@ -120,6 +120,11 @@ MENU_COMMANDS = {
 }
 COMMAND_SUGGESTIONS = []
 JEA_MODE = False
+# When True, JEA input is submitted as raw PowerShell script (add_script) instead
+# of structured cmdlet pipelines. Required for ConstrainedLanguage (not NoLanguage)
+# RestrictedRemoteServer endpoints, where script text is accepted and language
+# constructs such as variables, type literals and scriptblocks are usable.
+JEA_SCRIPT_MODE = False
 PS_PARAM_RE = re.compile(r"^-([A-Za-z_][A-Za-z0-9_]*):?$")
 
 # --- Colors ---
@@ -1629,7 +1634,9 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 try:
                     ps = PowerShell(r_pool)
                     if JEA_MODE:
-                        if not build_cmdlet_pipeline(ps, command):
+                        if JEA_SCRIPT_MODE:
+                            ps.add_script(command)
+                        elif not build_cmdlet_pipeline(ps, command):
                             continue
                     else:
                         ps.add_cmdlet("Invoke-Expression").add_parameter(
@@ -1703,6 +1710,13 @@ def main():
         "--configuration-name",
         default="Microsoft.PowerShell",
         help="session configuration (JEA endpoint) to connect to (default: Microsoft.PowerShell)",
+    )
+    parser.add_argument(
+        "--jea-script",
+        action="store_true",
+        help="in JEA mode, submit input as raw PowerShell script (add_script) "
+        "instead of cmdlet pipelines; use for ConstrainedLanguage or FullLanguage "
+        "endpoints",
     )
     parser.add_argument(
         "--priv-key-pem",
@@ -1920,12 +1934,20 @@ def main():
             )
 
         if is_jea:
-            global JEA_MODE
+            global JEA_MODE, JEA_SCRIPT_MODE
             JEA_MODE = True
-            print(
-                MAGENTA + "[%] JEA mode: Commands run as cmdlet pipelines. "
-                "Run 'Get-Command' to see allowed cmdlets." + RESET
-            )
+            JEA_SCRIPT_MODE = args.jea_script
+            if JEA_SCRIPT_MODE:
+                print(
+                    MAGENTA + "[%] JEA mode (script): Input submitted as raw "
+                    "PowerShell (for ConstrainedLanguage/FullLanguage endpoints)."
+                    + RESET
+                )
+            else:
+                print(
+                    MAGENTA + "[%] JEA mode: Commands run as cmdlet pipelines. "
+                    "Run 'Get-Command' to see allowed cmdlets." + RESET
+                )
 
         with WSManEWP(
             server=args.ip,
