@@ -121,9 +121,9 @@ MENU_COMMANDS = {
 COMMAND_SUGGESTIONS = []
 JEA_MODE = False
 # When True, JEA input is submitted as raw PowerShell script (add_script) instead
-# of structured cmdlet pipelines. Required for ConstrainedLanguage (not NoLanguage)
-# RestrictedRemoteServer endpoints, where script text is accepted and language
-# constructs such as variables, type literals and scriptblocks are usable.
+# of structured cmdlet pipelines. Set automatically on connect when the endpoint's
+# language mode is not NoLanguage (e.g. ConstrainedLanguage), where script text is
+# accepted and language constructs such as variables and scriptblocks are usable.
 JEA_SCRIPT_MODE = False
 PS_PARAM_RE = re.compile(r"^-([A-Za-z_][A-Za-z0-9_]*):?$")
 
@@ -286,6 +286,46 @@ def build_cmdlet_pipeline(ps: PowerShell, command: str) -> bool:
                     ps.add_argument(tok)
                     i += 1
     return True
+
+
+def detect_jea_language_mode(r_pool: RunspacePool) -> str | None:
+    """
+    Probes the endpoint's PowerShell language mode by submitting a tiny script.
+    NoLanguage endpoints reject any script text, so a failure here means
+    NoLanguage (or something we can't use script against). Returns the mode
+    name (e.g. "ConstrainedLanguage", "FullLanguage") or None on failure.
+    """
+    try:
+        ps = PowerShell(r_pool)
+        ps.add_script("$ExecutionContext.SessionState.LanguageMode")
+        ps.invoke()
+        if ps.had_errors or not ps.output:
+            return None
+        return str(ps.output[0]).strip() or None
+    except Exception as e:
+        log.debug("JEA language mode probe failed: {}".format(e))
+        return None
+
+
+def configure_jea_input_mode(r_pool: RunspacePool) -> None:
+    """
+    Picks how JEA input is submitted based on the endpoint's language mode:
+    raw script when the endpoint allows it, cmdlet pipelines otherwise.
+    """
+    global JEA_SCRIPT_MODE
+    mode = detect_jea_language_mode(r_pool)
+    JEA_SCRIPT_MODE = mode is not None and mode != "NoLanguage"
+    log.info("JEA language mode: {}".format(mode or "NoLanguage (probe rejected)"))
+    if JEA_SCRIPT_MODE:
+        print(
+            MAGENTA + "[%] JEA mode ({}): Input submitted as PowerShell script. "
+            "Run 'Get-Command' to see allowed cmdlets.".format(mode) + RESET
+        )
+    else:
+        print(
+            MAGENTA + "[%] JEA mode (NoLanguage): Commands run as cmdlet pipelines. "
+            "Run 'Get-Command' to see allowed cmdlets." + RESET
+        )
 
 
 def format_ps_object(obj) -> str:
@@ -1712,13 +1752,6 @@ def main():
         help="session configuration (JEA endpoint) to connect to (default: Microsoft.PowerShell)",
     )
     parser.add_argument(
-        "--jea-script",
-        action="store_true",
-        help="in JEA mode, submit input as raw PowerShell script (add_script) "
-        "instead of cmdlet pipelines; use for ConstrainedLanguage or FullLanguage "
-        "endpoints",
-    )
-    parser.add_argument(
         "--priv-key-pem",
         help="local path to private key PEM file",
     )
@@ -1934,20 +1967,8 @@ def main():
             )
 
         if is_jea:
-            global JEA_MODE, JEA_SCRIPT_MODE
+            global JEA_MODE
             JEA_MODE = True
-            JEA_SCRIPT_MODE = args.jea_script
-            if JEA_SCRIPT_MODE:
-                print(
-                    MAGENTA + "[%] JEA mode (script): Input submitted as raw "
-                    "PowerShell (for ConstrainedLanguage/FullLanguage endpoints)."
-                    + RESET
-                )
-            else:
-                print(
-                    MAGENTA + "[%] JEA mode: Commands run as cmdlet pipelines. "
-                    "Run 'Get-Command' to see allowed cmdlets." + RESET
-                )
 
         with WSManEWP(
             server=args.ip,
@@ -1968,6 +1989,8 @@ def main():
             with RunspacePool(
                 wsman, configuration_name=args.configuration_name
             ) as r_pool:
+                if is_jea:
+                    configure_jea_input_mode(r_pool)
                 interactive_shell(r_pool)
     except (KeyboardInterrupt, EOFError):
         sys.exit(0)
